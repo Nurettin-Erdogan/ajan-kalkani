@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fnmatch import fnmatchcase
 
-from agentguard.models import IntentContract, PolicyDecision, RunMode, ToolCall
+from ajan_kalkani.models import IntentContract, PolicyDecision, RunMode, ToolCall
 
 
 SENSITIVE_LABELS = {"secret", "credential", "personal", "financial", "sensitive"}

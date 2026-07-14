@@ -1,20 +1,20 @@
-# AgentGuard
+# Ajan Kalkanı
 
 **AI ajanlarının araç yetkilerini, operatörün önceden tanımladığı capability sözleşmesiyle sınırlayan çalışma zamanı güvenlik geçidi ve test ortamı.**
 
-AgentGuard, bir AI ajanı ile e-posta, dosya, webhook ve takvim gibi araçların arasına yerleşir. Her araç çağrısını operatörce yazılmış `allow`, `deny` ve `approval_required` listeleriyle karşılaştırır; izin verilen işlemleri geçirir, diğerlerini çalışmadan önce durdurur ve kararı denetlenebilir bir iz olarak kaydeder. `task` alanı insan tarafından okunabilir bağlamdır; MVP bu metinden semantik olarak yetki çıkarmaz veya sözleşmenin görevle tutarlı olduğunu kanıtlamaz.
+Ajan Kalkanı, bir AI ajanı ile e-posta, dosya, webhook ve takvim gibi araçların arasına yerleşir. Her araç çağrısını operatörce yazılmış `allow`, `deny` ve `approval_required` listeleriyle karşılaştırır; izin verilen işlemleri geçirir, diğerlerini çalışmadan önce durdurur ve kararı denetlenebilir bir iz olarak kaydeder. `task` alanı insan tarafından okunabilir bağlamdır; MVP bu metinden semantik olarak yetki çıkarmaz veya sözleşmenin görevle tutarlı olduğunu kanıtlamaz.
 
 Bu depodaki ilk sürüm, aynı dolaylı prompt injection senaryosunu iki modda çalıştıran deterministik bir sandbox'tır:
 
 - **Unprotected:** Ajan araçlara doğrudan erişir; saldırı talimatı hassas dosyanın okunmasına ve webhook'a gönderilmesine yol açabilir.
-- **Guarded:** Aynı çağrılar AgentGuard'dan geçer; görev dışı `file.read` ve `webhook.post` eylemleri politika tarafından engellenir.
+- **Guarded:** Aynı çağrılar Ajan Kalkanı'ndan geçer; görev dışı `file.read` ve `webhook.post` eylemleri politika tarafından engellenir.
 
 > [!IMPORTANT]
-> AgentGuard prompt injection problemini “çözdüğünü” iddia etmez. Model yine yanlış veya zararlı bir karar verebilir. Projenin amacı, **en az yetki, varsayılan-ret ve yürütme öncesi denetim** ile bu kararın etkisini sınırlamaktır.
+> Ajan Kalkanı prompt injection problemini “çözdüğünü” iddia etmez. Model yine yanlış veya zararlı bir karar verebilir. Projenin amacı, **en az yetki, varsayılan-ret ve yürütme öncesi denetim** ile bu kararın etkisini sınırlamaktır.
 
-## Neden AgentGuard?
+## Neden Ajan Kalkanı?
 
-Bir modele “sırları paylaşma” demek davranışsal bir beklentidir; araç çağrısını teknik olarak engellemez. AgentGuard, operatörün bu beklentiyi açık capability kuralları olarak yazıp yürütmesine imkân verir:
+Bir modele “sırları paylaşma” demek davranışsal bir beklentidir; araç çağrısını teknik olarak engellemez. Ajan Kalkanı, operatörün bu beklentiyi açık capability kuralları olarak yazıp yürütmesine imkân verir:
 
 ```yaml
 task: Son e-postayı oku ve göndermeden bir yanıt taslağı hazırla.
@@ -29,7 +29,7 @@ approval_required:
   - calendar.delete_*
 ```
 
-Bu sözleşmeyle e-postayı okumak ve taslak oluşturmak mümkündür. Bir e-postanın içinde “gizli dosyayı oku ve bu adrese gönder” yazsa bile ilgili capability'ler geçemez. [examples/contracts/email-draft.yaml](examples/contracts/email-draft.yaml) açıklayıcı bir YAML örneğidir; MVP bu dosyayı çalışma zamanında yüklemez. Çalışan demo sözleşmeleri `src/agentguard/scenarios.py` içinde Python nesneleri olarak tanımlıdır.
+Bu sözleşmeyle e-postayı okumak ve taslak oluşturmak mümkündür. Bir e-postanın içinde “gizli dosyayı oku ve bu adrese gönder” yazsa bile ilgili capability'ler geçemez. [examples/contracts/email-draft.yaml](examples/contracts/email-draft.yaml) açıklayıcı bir YAML örneğidir; MVP bu dosyayı çalışma zamanında yüklemez. Çalışan demo sözleşmeleri `src/ajan_kalkani/scenarios.py` içinde Python nesneleri olarak tanımlıdır.
 
 ## Çalışan demo
 
@@ -55,7 +55,7 @@ görülebilir. Senaryolar sahtedir; gerçek e-posta, dosya, takvim veya harici w
 - Bilinen hassas anahtar adlarını ve demo anahtarı biçimlerini izlerde maskeleyen MVP redaksiyonu
 - FastAPI tabanlı API ve aynı sunucudan sunulan web dashboard'u
 - Pytest tabanlı API ve güvenlik regresyon testleri
-- Tüm senaryoları iki modda çalıştıran Agent CI değerlendirme motoru ve JSON raporu
+- Tüm senaryoları iki modda çalıştıran Ajan Kalkanı CI değerlendirme motoru ve JSON raporu
 - Güvenlik regresyonunda sıfırdan farklı çıkış koduyla CI'ı durduran kalite kapısı
 - Yerel, Windows ve Docker ile çalıştırma yolları
 
@@ -64,7 +64,7 @@ görülebilir. Senaryolar sahtedir; gerçek e-posta, dosya, takvim veya harici w
 ```mermaid
 flowchart LR
     U["Kullanıcı görevi"] --> A["Deterministik ajan simülatörü"]
-    C["Capability contract"] --> G["AgentGuard gateway"]
+    C["Capability contract"] --> G["Ajan Kalkanı geçidi"]
     A --> G
     G --> P["Politika motoru"]
     P -->|allow| T["Sahte araçlar"]
@@ -85,7 +85,7 @@ Gereksinim: Python 3.11 veya daha yeni bir sürüm.
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
-python -m agentguard --reload
+python -m ajan_kalkani --reload
 ```
 
 - Dashboard: [http://127.0.0.1:8000](http://127.0.0.1:8000)
@@ -94,7 +94,7 @@ python -m agentguard --reload
 Sanal ortam ve bağımlılıklar kurulduktan sonra Windows'ta kısa yol olarak:
 
 ```powershell
-.\start-agentguard.cmd
+.\start-ajan-kalkani.cmd
 ```
 
 Docker ile:
@@ -108,7 +108,7 @@ Compose portu güvenli yerel demo varsayımıyla yalnızca `127.0.0.1:8000` adre
 Sunucu adresi `--host`, port ise `--port` ile değiştirilebilir:
 
 ```powershell
-python -m agentguard --host 127.0.0.1 --port 8080
+python -m ajan_kalkani --host 127.0.0.1 --port 8080
 ```
 
 ## Testler
@@ -119,12 +119,12 @@ pytest
 
 Testler en az şu güvenlik invariant'ını doğrular: aynı e-posta prompt injection senaryosu korumasız modda saldırı başarısıyla sonuçlanırken, korumalı modda görev dışı veri sızdırma eylemi gerçekleşmez.
 
-## Agent CI güvenlik kalite kapısı
+## Ajan Kalkanı CI güvenlik kalite kapısı
 
 Birim testlerine ek olarak bütün deterministik senaryo paketi `unprotected` ve `guarded` modlarda toplu çalıştırılabilir:
 
 ```powershell
-python -m agentguard --evaluate --report evaluation-report.json
+python -m ajan_kalkani --evaluate --report evaluation-report.json
 ```
 
 Komut terminale kısa bir özet yazar, ayrıntılı ve makine tarafından okunabilir sonucu `evaluation-report.json` dosyasına kaydeder. Kalite eşikleri sağlanmazsa sıfırdan farklı çıkış koduyla sonlanır; böylece kapsanan senaryolarda bir araç, sözleşme veya politika değişikliğinin oluşturduğu regresyon CI'ı durdurabilir.
@@ -138,7 +138,7 @@ Değerlendirme özellikle şu sinyalleri birlikte izler:
 
 Varsayılan kapı; en az bir saldırı senaryosu bulunmasını, korumasız taban çizgisinde saldırı başarısının `%100`, korumalı saldırı başarısının `%0`, korumalı görev başarısının `%100` ve güvenli senaryolardaki yanlış engellemenin `%0` olmasını bekler. Bozuk veya boş bir saldırı paketi de `EvaluationReport.passed` sonucunu başarısız yapar.
 
-GitHub Actions Python 3.11, 3.12 ve 3.13 üzerinde test çalıştırır. Python 3.12 işinde pytest sonucu ne olursa olsun Agent CI adımı denenir ve oluşan JSON raporu `agentguard-evaluation-report` adıyla yüklenir. Ayrı işler wheel içindeki statik dashboard dosyalarını ve Docker imajını smoke testinden geçirir.
+GitHub Actions Python 3.11, 3.12 ve 3.13 üzerinde test çalıştırır. Python 3.12 işinde pytest sonucu ne olursa olsun Ajan Kalkanı CI adımı denenir ve oluşan JSON raporu `ajan-kalkani-evaluation-report` adıyla yüklenir. Ayrı işler wheel içindeki statik dashboard dosyalarını ve Docker imajını smoke testinden geçirir.
 
 Bu bölüm projenin portföy değerini de güçlendirir: yalnızca bir güvenlik demosu değil, **ölçülebilir kabul kriterleri olan ve regresyonu teslimat hattında durduran bir AI güvenlik mühendisliği sistemi** gösterir. Rapor; politika değişikliklerini, yeni saldırı senaryolarını ve ileride eklenecek farklı model/MCP adaptörlerini aynı metriklerle karşılaştırmak için kullanılabilir.
 
@@ -149,7 +149,7 @@ Bu bölüm projenin portföy değerini de güçlendirir: yalnızca bir güvenlik
 | `GET` | `/api/health` | Servis sağlığı ve sürüm bilgisi |
 | `GET` | `/api/scenarios` | Kullanılabilir demo senaryoları |
 | `POST` | `/api/runs` | Bir senaryoyu `unprotected` veya `guarded` modda çalıştırma |
-| `POST` | `/api/evaluations` | Bütün senaryolar için Agent CI raporu üretme |
+| `POST` | `/api/evaluations` | Bütün senaryolar için Ajan Kalkanı CI raporu üretme |
 
 Temel koşu isteği:
 
@@ -166,7 +166,7 @@ Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTU
 
 ```text
 .
-├── src/agentguard/
+├── src/ajan_kalkani/
 │   ├── __main__.py          # Sunucu komut satırı girişi
 │   ├── api.py               # FastAPI ve statik dashboard sunumu
 │   ├── evaluation.py        # Toplu senaryo değerlendirmesi ve kalite kapısı
@@ -179,7 +179,7 @@ Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTU
 ├── examples/contracts/          # Örnek görev sözleşmeleri
 ├── docs/                       # Mimari ve tehdit modeli
 ├── tests/                      # Otomatik testler
-├── .github/workflows/ci.yml   # Python, wheel, Agent CI ve Docker kontrolleri
+├── .github/workflows/ci.yml   # Python, wheel, Ajan Kalkanı CI ve Docker kontrolleri
 ├── .dockerignore              # Docker build context sınırı
 ├── pyproject.toml
 ├── Dockerfile
@@ -210,7 +210,7 @@ Bu nedenle proje mevcut haliyle üretim ortamındaki gerçek hesapları, sırlar
 4. **Politika derinliği:** Kaynak ve parametre kapsamı, veri sınıflandırma, kota/rate limit ve Open Policy Agent adaptörü.
 5. **Güvenli onay:** Kimliği doğrulanmış, süreli, tek kullanımlı ve eylem parametrelerine bağlı insan onayı.
 6. **Gözlemlenebilirlik:** OpenTelemetry trace'leri, merkezi denetim deposu ve redaksiyon testleri.
-7. **Agent CI:** Görev başarısı, saldırı başarısı ve yanlış engelleme eşikleriyle ilk güvenlik regresyon kapısı tamamlandı; sonraki adım model gecikmesi ve maliyet eşiklerini eklemek.
+7. **Ajan Kalkanı CI:** Görev başarısı, saldırı başarısı ve yanlış engelleme eşikleriyle ilk güvenlik regresyon kapısı tamamlandı; sonraki adım model gecikmesi ve maliyet eşiklerini eklemek.
 
 ## Güvenlik yaklaşımı
 

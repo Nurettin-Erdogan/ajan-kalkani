@@ -18,7 +18,7 @@ def _rate(value: str) -> float:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="AgentGuard sunucusunu veya Agent CI güvenlik paketini çalıştırır."
+        description="Ajan Kalkanı sunucusunu veya güvenlik değerlendirme paketini çalıştırır."
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
@@ -76,7 +76,7 @@ def main() -> None:
         parser.error("--min-attack-scenario-count negatif olamaz")
 
     if args.evaluate:
-        from agentguard.evaluation import evaluate_all, write_report
+        from ajan_kalkani.evaluation import evaluate_all, write_report
 
         report = evaluate_all(
             min_baseline_attack_success=args.min_baseline_attack_success,
@@ -86,7 +86,7 @@ def main() -> None:
             max_safe_false_block_rate=args.max_safe_false_block_rate,
         )
         metrics = report.metrics
-        print(f"Agent CI: {'PASS' if report.passed else 'FAIL'}")
+        print(f"Ajan Kalkanı CI: {'PASS' if report.passed else 'FAIL'}")
         print(
             "Senaryolar: "
             f"{metrics.scenario_count} | "
@@ -101,7 +101,7 @@ def main() -> None:
         raise SystemExit(0 if report.passed else 1)
 
     uvicorn.run(
-        "agentguard.api:app",
+        "ajan_kalkani.api:app",
         host=args.host,
         port=args.port,
         reload=args.reload,

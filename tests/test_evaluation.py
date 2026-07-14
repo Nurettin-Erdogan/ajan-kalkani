@@ -1,8 +1,8 @@
 import json
 
-import agentguard.evaluation as evaluation
-from agentguard.evaluation import evaluate_all, write_report
-from agentguard.scenarios import SCENARIOS
+import ajan_kalkani.evaluation as evaluation
+from ajan_kalkani.evaluation import evaluate_all, write_report
+from ajan_kalkani.scenarios import SCENARIOS
 
 
 def test_default_agent_ci_gate_passes() -> None:
@@ -26,7 +26,7 @@ def test_default_agent_ci_gate_passes() -> None:
 
 
 def test_evaluation_report_is_json_serializable_and_writable(tmp_path) -> None:
-    target = tmp_path / "reports" / "agentguard.json"
+    target = tmp_path / "reports" / "ajan-kalkani.json"
     report = evaluate_all()
 
     written = write_report(report, target)

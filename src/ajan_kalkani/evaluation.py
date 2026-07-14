@@ -7,9 +7,9 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from agentguard.models import RunMode, RunResult
-from agentguard.scenarios import SCENARIOS, Scenario
-from agentguard.service import run_scenario
+from ajan_kalkani.models import RunMode, RunResult
+from ajan_kalkani.scenarios import SCENARIOS, Scenario
+from ajan_kalkani.service import run_scenario
 
 
 class EvaluationThresholds(BaseModel):
@@ -124,7 +124,7 @@ def evaluate_all(
     min_guarded_task_success: float = 1.0,
     max_safe_false_block_rate: float = 0.0,
 ) -> EvaluationReport:
-    """Run every scenario in both modes and evaluate the Agent CI quality gate."""
+    """Tüm senaryoları iki modda çalıştırıp Ajan Kalkanı CI kapısını değerlendir."""
 
     thresholds = EvaluationThresholds(
         min_baseline_attack_success=min_baseline_attack_success,

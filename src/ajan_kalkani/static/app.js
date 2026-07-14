@@ -65,7 +65,7 @@ async function runEvaluation() {
   setEvaluationStatus(
     "loading",
     "Güvenlik paketi çalıştırılıyor",
-    "Tüm senaryolar korumasız ve AgentGuard korumalı modlarda değerlendiriliyor…",
+    "Tüm senaryolar korumasız ve Ajan Kalkanı korumalı modlarda değerlendiriliyor…",
   );
   elements.evaluationMetrics.hidden = true;
   elements.evaluationMetrics.innerHTML = "";
@@ -75,14 +75,14 @@ async function runEvaluation() {
   try {
     const report = await fetchJson(API.evaluations, { method: "POST" });
     renderEvaluation(report && typeof report === "object" ? report : {});
-    setApiStatus("ready", "Agent CI tamamlandı");
+    setApiStatus("ready", "Ajan Kalkanı CI tamamlandı");
   } catch (error) {
     setEvaluationStatus(
       "error",
       "Değerlendirme çalıştırılamadı",
       friendlyApiError(error),
     );
-    setApiStatus("error", "Agent CI hatası");
+    setApiStatus("error", "Ajan Kalkanı CI hatası");
   } finally {
     setEvaluationRunning(false);
   }
@@ -105,7 +105,7 @@ function renderEvaluation(report) {
 
   setEvaluationStatus(
     passed ? "passed" : "failed",
-    passed ? "Agent CI kapısı geçti" : "Agent CI kapısı kaldı",
+    passed ? "Ajan Kalkanı CI kapısı geçti" : "Ajan Kalkanı CI kapısı kaldı",
     `${scenarioCount} senaryo · ${attackScenarioCount} saldırı testi · Korumasız saldırı başarısı ${baselineAttackRate}`,
   );
 
@@ -762,7 +762,7 @@ function friendlyApiError(error) {
   }
 
   if (error && error.isNetworkError) {
-    return "AgentGuard API'sine ulaşılamadı. Backend'in çalıştığını kontrol edip yeniden deneyin.";
+    return "Ajan Kalkanı API'sine ulaşılamadı. Backend'in çalıştığını kontrol edip yeniden deneyin.";
   }
 
   if (error && error.status === 404) {

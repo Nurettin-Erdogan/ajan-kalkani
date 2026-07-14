@@ -1,3 +1,5 @@
+"""Ajan Kalkanı veri modelleri."""
+
 from __future__ import annotations
 
 from enum import Enum

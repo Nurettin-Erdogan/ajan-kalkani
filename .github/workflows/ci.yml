@@ -1,4 +1,4 @@
-name: AgentGuard CI
+name: Ajan Kalkanı CI
 
 on:
   push:
@@ -32,15 +32,15 @@ jobs:
       - name: Testleri çalıştır
         run: pytest
 
-      - name: Agent CI güvenlik değerlendirmesini çalıştır
+      - name: Ajan Kalkanı güvenlik değerlendirmesini çalıştır
         if: ${{ !cancelled() && matrix.python-version == '3.12' }}
-        run: python -m agentguard --evaluate --report evaluation-report.json
+        run: python -m ajan_kalkani --evaluate --report evaluation-report.json
 
       - name: Değerlendirme raporunu yükle
         if: ${{ !cancelled() && matrix.python-version == '3.12' }}
         uses: actions/upload-artifact@v7
         with:
-          name: agentguard-evaluation-report
+          name: ajan-kalkani-evaluation-report
           path: evaluation-report.json
           if-no-files-found: error
 
@@ -76,9 +76,9 @@ jobs:
               raise SystemExit(f"Tam olarak bir wheel bekleniyordu; bulunan: {wheels}")
 
           required = {
-              "agentguard/static/index.html",
-              "agentguard/static/styles.css",
-              "agentguard/static/app.js",
+              "ajan_kalkani/static/index.html",
+              "ajan_kalkani/static/styles.css",
+              "ajan_kalkani/static/app.js",
           }
           with ZipFile(wheels[0]) as archive:
               names = set(archive.namelist())
@@ -98,7 +98,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Docker imajını oluştur
-        run: docker build --tag agentguard-ci .
+        run: docker build --tag ajan-kalkani-ci .
 
       - name: İmaj içindeki Python paketini doğrula
-        run: docker run --rm --entrypoint python agentguard-ci -c "import agentguard; from agentguard.api import app; assert app.title == 'AgentGuard API'"
+        run: docker run --rm --entrypoint python ajan-kalkani-ci -c "import ajan_kalkani; from ajan_kalkani.api import app; assert app.title == 'Ajan Kalkanı API'"

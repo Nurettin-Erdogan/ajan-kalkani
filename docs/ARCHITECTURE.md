@@ -1,8 +1,8 @@
-# AgentGuard mimarisi
+# Ajan Kalkanı mimarisi
 
 ## 1. Amaç ve mevcut aşama
 
-AgentGuard, bir AI ajanının araç çağrılarını yan etki oluşmadan önce denetleyen bir capability-policy gateway denemesidir. Yetki kararını model değil, operatörün önceden yazdığı `allow`, `deny` ve `approval_required` listeleri verir.
+Ajan Kalkanı, bir AI ajanının araç çağrılarını yan etki oluşmadan önce denetleyen bir capability-policy gateway denemesidir. Yetki kararını model değil, operatörün önceden yazdığı `allow`, `deny` ve `approval_required` listeleri verir.
 
 `IntentContract.task` insan tarafından okunabilir bağlamdır. Mevcut politika motoru bu metni semantik olarak yorumlamaz, metinden yetki çıkarmaz ve capability listelerinin görevle tutarlı olduğunu kanıtlamaz. Bu nedenle MVP'nin güvenlik sınırı “kullanıcı niyetini otomatik anlama” değil, **operatörce tanımlanmış capability sözleşmesini deterministik uygulama** yeteneğidir.
 
@@ -13,7 +13,7 @@ Bu depodaki sürüm:
 - aynı senaryoyu `unprotected` ve `guarded` modda çalıştırır;
 - sonuçları sandbox yan etkilerinden hesaplar;
 - kararları redakte edilmiş olaylar olarak API ve dashboard'a döndürür;
-- senaryo paketini toplu çalıştıran ilk Agent CI kalite kapısını içerir.
+- senaryo paketini toplu çalıştıran ilk Ajan Kalkanı CI kalite kapısını içerir.
 
 Gerçek model, MCP proxy, harici contract loader, kimlik doğrulamalı onay, kalıcı olay deposu ve OpenTelemetry henüz yoktur.
 
@@ -24,10 +24,10 @@ flowchart TB
     subgraph Client["İstemci sınırı"]
         UI["Web dashboard"]
         AC["API istemcisi"]
-        CLI["Agent CI CLI"]
+        CLI["Ajan Kalkanı CI CLI"]
     end
 
-    subgraph App["AgentGuard uygulaması"]
+    subgraph App["Ajan Kalkanı uygulaması"]
         API["FastAPI"]
         EV["Evaluation runner"]
         SV["Simulation service"]
@@ -65,7 +65,7 @@ API girdi doğrulamasını, `404` eşlemesini ve Pydantic yanıt serileştirmesi
 
 ### Senaryo ve contract kataloğu
 
-Senaryolar ile capability listeleri `src/agentguard/scenarios.py` içinde Python nesneleri olarak tanımlıdır. `examples/contracts/email-draft.yaml` yalnızca açıklayıcı bir örnektir; uygulama bu dosyayı yüklemez ve depoda bir YAML contract loader bulunmaz.
+Senaryolar ile capability listeleri `src/ajan_kalkani/scenarios.py` içinde Python nesneleri olarak tanımlıdır. `examples/contracts/email-draft.yaml` yalnızca açıklayıcı bir örnektir; uygulama bu dosyayı yüklemez ve depoda bir YAML contract loader bulunmaz.
 
 ### Simulation service
 
@@ -362,18 +362,18 @@ Kalite kapısının `passed` değeri üç eşiğe dayanır: korumalı saldırı 
 - eksik/geçersiz `mode`: `422`;
 - beklenmeyen uygulama hatası: `5xx`.
 
-## 8. Agent CI ve paketleme kontrolleri
+## 8. Ajan Kalkanı CI ve paketleme kontrolleri
 
 Yerel kalite kapısı:
 
 ```powershell
-python -m agentguard --evaluate --report evaluation-report.json
+python -m ajan_kalkani --evaluate --report evaluation-report.json
 ```
 
 GitHub Actions:
 
 - pytest'i Python 3.11, 3.12 ve 3.13 ile çalıştırır;
-- Python 3.12 işinde pytest başarısız olsa bile Agent CI adımını dener;
+- Python 3.12 işinde pytest başarısız olsa bile Ajan Kalkanı CI adımını dener;
 - oluşan raporu artifact olarak yükler; rapor oluşmazsa artifact adımı uyarı verir;
 - sdist/wheel oluşturup wheel içindeki HTML, CSS ve JavaScript dosyalarını kontrol eder;
 - Docker imajını oluşturup paket import smoke testi yapar.

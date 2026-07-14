@@ -1,12 +1,12 @@
-# AgentGuard tehdit modeli
+# Ajan Kalkanı tehdit modeli
 
 ## 1. Belgenin amacı
 
-Bu belge, AgentGuard MVP'nin neyi koruduğunu, hangi varsayımlar altında çalıştığını ve hangi riskleri bilinçli olarak kapsam dışında bıraktığını tanımlar. Tehdit modeli, mevcut deterministik sandbox'ın sınırlarını ve gerçek LLM/MCP entegrasyonu için gereken ek kontrolleri ayrı ayrı belirtir.
+Bu belge, Ajan Kalkanı MVP'sinin neyi koruduğunu, hangi varsayımlar altında çalıştığını ve hangi riskleri bilinçli olarak kapsam dışında bıraktığını tanımlar. Tehdit modeli, mevcut deterministik sandbox'ın sınırlarını ve gerçek LLM/MCP entegrasyonu için gereken ek kontrolleri ayrı ayrı belirtir.
 
 Ana güvenlik iddiası şudur:
 
-> AgentGuard prompt injection'ın oluşmasını veya modelin zararlı bir talimatı izlemesini garantiyle engellemez. Korumalı modda, operatörün önceden yazdığı capability sözleşmesinin izin vermediği araç eylemlerini yan etki oluşmadan önce durdurarak saldırının etkisini sınırlar. `task` metni semantik bir yetkilendirme kontrolü değildir.
+> Ajan Kalkanı prompt injection'ın oluşmasını veya modelin zararlı bir talimatı izlemesini garantiyle engellemez. Korumalı modda, operatörün önceden yazdığı capability sözleşmesinin izin vermediği araç eylemlerini yan etki oluşmadan önce durdurarak saldırının etkisini sınırlar. `task` metni semantik bir yetkilendirme kontrolü değildir.
 
 ## 2. Sistem kapsamı
 
@@ -61,7 +61,7 @@ Erişilebilirlik, çok kiracılı izolasyon, mevzuat uyumluluğu ve üretim sevi
 | Contract sahibi/operatör | MVP'de güvenilir | Capability yetkilerini elle tanımlar ve sistemle birlikte dağıtır |
 | Ajan/model | Güvenilmez karar üreticisi | Araç çağrıları planlar; manipüle edilmiş olabilir |
 | Harici içerik sağlayıcı | Güvenilmez | E-posta, doküman veya araç sonucuna saldırı talimatı koyabilir |
-| AgentGuard gateway | Güvenilir hesaplama tabanı | Politika uygular ve araç yürütmesini kontrol eder |
+| Ajan Kalkanı geçidi | Güvenilir hesaplama tabanı | Politika uygular ve araç yürütmesini kontrol eder |
 | Araç/MCP sunucusu | MVP'de sahte ve güvenilir; gelecekte ayrı sınır | Yan etkiyi uygular, sonuç döndürür |
 | API/dashboard istemcisi | Kimlik doğrulama eklenene kadar güvenilmez | Koşu başlatabilir ve sonucu okuyabilir |
 
@@ -71,7 +71,7 @@ Temel ilke: **Ajan bir güvenlik otoritesi değildir.** Modelin sistem promptu, 
 
 ```mermaid
 flowchart LR
-    U["Kullanıcı / API istemcisi"] -->|TB-1| API["AgentGuard API"]
+    U["Kullanıcı / API istemcisi"] -->|TB-1| API["Ajan Kalkanı API"]
     X["Güvenilmez e-posta / doküman / araç çıktısı"] -->|TB-2| A["Ajan"]
     A -->|TB-3: tool call| G["Gateway + policy"]
     C["Contract sahibi"] -->|TB-4| G
@@ -196,7 +196,7 @@ Bu kriterler güvenlik kanıtının tamamı değil, regresyonları yakalayan ba�
 
 ## 11. Kalan riskler
 
-AgentGuard doğru çalışsa bile şu riskler devam eder:
+Ajan Kalkanı doğru çalışsa bile şu riskler devam eder:
 
 - **Fazla yetkili contract:** `allow: ["*"]` benzeri bir politika en az yetki sağlamaz.
 - **İzinli yeteneğin kötüye kullanımı:** Yalnızca capability kontrolü, zararlı alıcı/URL/path gibi parametreleri ayırt etmez.
@@ -238,4 +238,4 @@ Gerçek model veya MCP aracı bağlanmadan önce en az şunlar eklenmelidir:
 - normal görevler ve çeşitli saldırılarla CI regresyon eşikleri;
 - insan tarafından yapılan güvenlik incelemesi ve kontrollü pilot.
 
-Bu kontroller eklenmeden AgentGuard bir güvenlik ürünü değil, mimari fikri ve etkisini test eden bir MVP olarak değerlendirilmelidir.
+Bu kontroller eklenmeden Ajan Kalkanı bir güvenlik ürünü değil, mimari fikri ve etkisini test eden bir MVP olarak değerlendirilmelidir.

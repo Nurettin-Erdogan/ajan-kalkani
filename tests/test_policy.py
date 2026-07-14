@@ -1,5 +1,5 @@
-from agentguard.models import IntentContract, RunMode, ToolCall
-from agentguard.policy import PolicyEngine
+from ajan_kalkani.models import IntentContract, RunMode, ToolCall
+from ajan_kalkani.policy import PolicyEngine
 
 
 ENGINE = PolicyEngine()

@@ -1,7 +1,7 @@
-from agentguard.models import IntentContract, RunMode
-from agentguard.sandbox import Sandbox
-from agentguard.scenarios import SCENARIOS, Scenario, ScenarioStep, get_scenario
-from agentguard.service import _attack_succeeded, _redact, run_scenario
+from ajan_kalkani.models import IntentContract, RunMode
+from ajan_kalkani.sandbox import Sandbox
+from ajan_kalkani.scenarios import SCENARIOS, Scenario, ScenarioStep, get_scenario
+from ajan_kalkani.service import _attack_succeeded, _redact, run_scenario
 
 
 def test_email_injection_is_compromised_without_gateway() -> None:

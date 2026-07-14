@@ -3,9 +3,9 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentguard-mvp"
+name = "ajan-kalkani"
 version = "0.1.0"
-description = "Intent-bound runtime policy gateway and security evaluation sandbox for AI agents"
+description = "AI ajanları için niyet odaklı çalışma zamanı politika geçidi ve güvenlik değerlendirme ortamı"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -26,7 +26,7 @@ dev = [
 ]
 
 [project.scripts]
-agentguard = "agentguard.__main__:main"
+ajan-kalkani = "ajan_kalkani.__main__:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -36,7 +36,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-agentguard = ["static/*.html", "static/*.css", "static/*.js"]
+ajan_kalkani = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

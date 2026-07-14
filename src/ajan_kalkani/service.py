@@ -6,16 +6,16 @@ from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
-from agentguard.models import (
+from ajan_kalkani.models import (
     RunMetrics,
     RunMode,
     RunResult,
     ToolCall,
     TraceEvent,
 )
-from agentguard.policy import PolicyEngine, SENSITIVE_LABELS, is_external_sink
-from agentguard.sandbox import Sandbox, ToolExecutionError
-from agentguard.scenarios import Scenario, get_scenario
+from ajan_kalkani.policy import PolicyEngine, SENSITIVE_LABELS, is_external_sink
+from ajan_kalkani.sandbox import Sandbox, ToolExecutionError
+from ajan_kalkani.scenarios import Scenario, get_scenario
 
 
 class ScenarioNotFoundError(LookupError):

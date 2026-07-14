@@ -7,16 +7,16 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 
-from agentguard.evaluation import EvaluationReport, evaluate_all
-from agentguard.models import RunRequest, RunResult, ScenarioSummary
-from agentguard.scenarios import get_scenario_summaries
-from agentguard.service import ScenarioNotFoundError, run_scenario
+from ajan_kalkani.evaluation import EvaluationReport, evaluate_all
+from ajan_kalkani.models import RunRequest, RunResult, ScenarioSummary
+from ajan_kalkani.scenarios import get_scenario_summaries
+from ajan_kalkani.service import ScenarioNotFoundError, run_scenario
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(
-    title="AgentGuard API",
+    title="Ajan Kalkanı API",
     version="0.1.0",
     description="AI ajanları için görev sözleşmeli güvenlik geçidi ve saldırı sandbox'ı.",
 )

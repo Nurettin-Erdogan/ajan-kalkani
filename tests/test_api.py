@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from agentguard.api import app
+from ajan_kalkani.api import app
 
 
 client = TestClient(app)
