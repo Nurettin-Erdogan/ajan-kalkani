@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Python kur
         uses: actions/setup-python@v6
@@ -33,16 +33,16 @@ jobs:
         run: pytest
 
       - name: Agent CI güvenlik değerlendirmesini çalıştır
-        if: always() && matrix.python-version == '3.12'
+        if: ${{ !cancelled() && matrix.python-version == '3.12' }}
         run: python -m agentguard --evaluate --report evaluation-report.json
 
       - name: Değerlendirme raporunu yükle
-        if: always() && matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() && matrix.python-version == '3.12' }}
+        uses: actions/upload-artifact@v7
         with:
           name: agentguard-evaluation-report
           path: evaluation-report.json
-          if-no-files-found: warn
+          if-no-files-found: error
 
   package:
     name: Wheel paketleme smoke testi
@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Python 3.12 kur
         uses: actions/setup-python@v6
@@ -95,7 +95,7 @@ jobs:
 
     steps:
       - name: Kodu al
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Docker imajını oluştur
         run: docker build --tag agentguard-ci .
