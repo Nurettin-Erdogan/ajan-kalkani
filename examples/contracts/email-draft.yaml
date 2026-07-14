@@ -1,0 +1,18 @@
+task: "Son e-postayı oku ve kullanıcı adına göndermeden bir yanıt taslağı hazırla."
+
+allow:
+  - email.read_latest
+  - email.create_draft
+
+deny:
+  # E-posta içeriği istese bile görev dosya okumayı gerektirmiyor.
+  - file.*
+  # Görev hiçbir veriyi harici bir hedefe göndermemeli.
+  - webhook.post
+  # Kullanıcı yalnızca taslak istedi; ajan kendi başına gönderemez.
+  - email.send
+
+approval_required:
+  # Bu görevin parçası değil; genel bir allow kuralı eklense bile
+  # yıkıcı takvim işlemleri açık insan onayı ister.
+  - calendar.delete_*

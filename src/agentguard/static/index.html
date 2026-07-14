@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="AgentGuard ile yapay zekâ ajanlarının araç çağrılarını güvenli bir sandbox ortamında karşılaştırın."
+    />
+    <title>AgentGuard | Ajan Güvenlik Laboratuvarı</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Ana içeriğe geç</a>
+
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href="#main-content" aria-label="AgentGuard ana sayfa">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" focusable="false">
+              <path d="M16 3.5 26 7v7.7c0 6.2-3.8 11.2-10 13.8-6.2-2.6-10-7.6-10-13.8V7l10-3.5Z" />
+              <path d="m11.5 16 3 3 6-7" />
+            </svg>
+          </span>
+          <span>
+            <strong>AgentGuard</strong>
+            <small>Ajan güvenlik laboratuvarı</small>
+          </span>
+        </a>
+
+        <div class="header-meta">
+          <span class="environment-badge">
+            <span class="badge-pulse" aria-hidden="true"></span>
+            Deterministik sandbox MVP
+          </span>
+          <span id="api-status" class="api-status" aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span>
+            Senaryolar yükleniyor
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="shell main-content">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">AI AJAN GÜVENLİĞİ</p>
+          <h1 id="hero-title">Aynı görevi çalıştır.<br /><span>Farkı kanıtla.</span></h1>
+          <p class="hero-description">
+            Bir saldırı senaryosunu korumasız ajan ve AgentGuard ile yan yana çalıştırın.
+            Hangi araç çağrısının neden yürütüldüğünü veya engellendiğini izleyin.
+          </p>
+        </div>
+
+        <div class="hero-principles" aria-label="AgentGuard güvenlik prensipleri">
+          <div class="principle">
+            <span class="principle-index">01</span>
+            <div>
+              <strong>Görev sözleşmesi</strong>
+              <span>Her ajan için açık yetki sınırı</span>
+            </div>
+          </div>
+          <div class="principle">
+            <span class="principle-index">02</span>
+            <div>
+              <strong>Araç denetimi</strong>
+              <span>Çalıştırmadan önce politika kontrolü</span>
+            </div>
+          </div>
+          <div class="principle">
+            <span class="principle-index">03</span>
+            <div>
+              <strong>Kanıt izi</strong>
+              <span>Kararların adım adım kaydı</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="control-panel panel" aria-labelledby="experiment-title">
+        <div class="panel-heading">
+          <div>
+            <p class="section-kicker">YENİ DENEY</p>
+            <h2 id="experiment-title">Saldırı senaryosunu seçin</h2>
+          </div>
+          <span class="parallel-note">
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+              <path d="M4 5.5h12M4 14.5h12M7 3l-3 2.5L7 8M13 12l3 2.5-3 2.5" />
+            </svg>
+            İki mod paralel çalışır
+          </span>
+        </div>
+
+        <div class="experiment-layout">
+          <div class="field-group">
+            <label for="scenario-select">Test senaryosu</label>
+            <div class="select-wrap">
+              <select id="scenario-select" disabled aria-describedby="scenario-help">
+                <option>Senaryolar yükleniyor…</option>
+              </select>
+              <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="m5 7.5 5 5 5-5" />
+              </svg>
+            </div>
+            <p id="scenario-help" class="field-help">Sandbox içinde güvenle çalıştırılır.</p>
+          </div>
+
+          <article id="scenario-preview" class="scenario-preview" aria-live="polite">
+            <div class="preview-placeholder">
+              <span class="placeholder-line wide"></span>
+              <span class="placeholder-line"></span>
+              <span class="placeholder-line short"></span>
+            </div>
+          </article>
+
+          <div class="action-area">
+            <button id="run-button" class="primary-button" type="button" disabled>
+              <span class="button-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" focusable="false">
+                  <path d="m7 4 8 6-8 6V4Z" />
+                </svg>
+              </span>
+              <span id="run-button-label">Karşılaştırmayı çalıştır</span>
+              <span class="button-spinner" aria-hidden="true"></span>
+            </button>
+            <button id="retry-button" class="secondary-button" type="button" hidden>
+              Senaryoları yeniden yükle
+            </button>
+            <p class="action-hint">Gerçek hesaplara veya dış sistemlere erişmez.</p>
+          </div>
+        </div>
+
+        <div id="notice" class="notice" role="alert" hidden></div>
+      </section>
+
+      <section class="evaluation-panel panel" aria-labelledby="evaluation-title">
+        <div class="evaluation-header">
+          <div class="evaluation-copy">
+            <p class="section-kicker">AGENT CI</p>
+            <h2 id="evaluation-title">Tüm güvenlik paketini doğrula</h2>
+            <p>
+              Bütün senaryoları korumasız ve korumalı modlarda çalıştırın. Güvenlik eşiği
+              aşılırsa CI kapısı başarısız olur.
+            </p>
+          </div>
+
+          <button
+            id="evaluation-button"
+            class="primary-button evaluation-button"
+            type="button"
+            aria-describedby="evaluation-description"
+          >
+            <span class="button-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" focusable="false">
+                <path d="M4 5h12v3H4V5Zm0 7h12v3H4v-3Z" />
+              </svg>
+            </span>
+            <span id="evaluation-button-label">Güvenlik paketini çalıştır</span>
+            <span class="button-spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <p id="evaluation-description" class="sr-only">
+          Tüm senaryoları iki modda çalıştırır ve AgentGuard güvenlik eşiklerini kontrol eder.
+        </p>
+
+        <div
+          id="evaluation-status"
+          class="evaluation-status"
+          data-state="idle"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <span id="evaluation-status-mark" class="evaluation-status-mark" aria-hidden="true">CI</span>
+          <div>
+            <strong id="evaluation-status-title">Toplu değerlendirmeye hazır</strong>
+            <span id="evaluation-status-detail">
+              Sonuçlar güvenlik ve görev başarısı eşikleriyle birlikte burada gösterilecek.
+            </span>
+          </div>
+        </div>
+
+        <div
+          id="evaluation-metrics"
+          class="evaluation-metrics"
+          aria-label="Agent CI değerlendirme ölçümleri"
+          hidden
+        ></div>
+
+        <div id="evaluation-failures" class="evaluation-failures" role="alert" hidden></div>
+      </section>
+
+      <section class="results-section" aria-labelledby="results-title">
+        <div class="results-heading">
+          <div>
+            <p class="section-kicker">KARŞILAŞTIRMA</p>
+            <h2 id="results-title" tabindex="-1">Çalıştırma sonuçları</h2>
+          </div>
+          <p id="results-meta" class="results-meta" aria-live="polite">
+            Henüz bir deney çalıştırılmadı
+          </p>
+        </div>
+
+        <div id="empty-state" class="empty-state panel">
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" focusable="false">
+              <path d="M24 5.5 39 11v11.4c0 9.3-5.7 16.8-15 20.6C14.7 39.2 9 31.7 9 22.4V11l15-5.5Z" />
+              <path d="M16 24h16M24 16v16" />
+            </svg>
+          </div>
+          <h3>Karşılaştırmaya hazır</h3>
+          <p>
+            Bir senaryo seçip deneyi başlatın. İki ajanın araç çağrıları ve güvenlik
+            kararları burada yan yana gösterilecek.
+          </p>
+        </div>
+
+        <div id="loading-state" class="loading-grid" aria-live="polite" hidden>
+          <article class="loading-card panel">
+            <div class="skeleton skeleton-label"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-banner"></div>
+            <div class="skeleton-row">
+              <div class="skeleton skeleton-metric"></div>
+              <div class="skeleton skeleton-metric"></div>
+              <div class="skeleton skeleton-metric"></div>
+            </div>
+            <span class="sr-only">Korumasız mod çalıştırılıyor</span>
+          </article>
+          <article class="loading-card panel">
+            <div class="skeleton skeleton-label"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-banner"></div>
+            <div class="skeleton-row">
+              <div class="skeleton skeleton-metric"></div>
+              <div class="skeleton skeleton-metric"></div>
+              <div class="skeleton skeleton-metric"></div>
+            </div>
+            <span class="sr-only">AgentGuard modu çalıştırılıyor</span>
+          </article>
+        </div>
+
+        <div id="results-grid" class="results-grid" hidden>
+          <article class="result-card result-card-unprotected panel" aria-labelledby="unprotected-title">
+            <header class="result-card-header">
+              <div class="mode-symbol mode-symbol-unprotected" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M12 3 21 19H3L12 3Z" />
+                  <path d="M12 9v4.5M12 17h.01" />
+                </svg>
+              </div>
+              <div>
+                <span class="mode-label">KONTROL GRUBU</span>
+                <h3 id="unprotected-title">Korumasız ajan</h3>
+              </div>
+            </header>
+            <div id="unprotected-result" class="result-card-body"></div>
+          </article>
+
+          <article class="result-card result-card-guarded panel" aria-labelledby="guarded-title">
+            <header class="result-card-header">
+              <div class="mode-symbol mode-symbol-guarded" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M12 2.8 20 5.7v6.1c0 5-3 9-8 11.1-5-2.1-8-6.1-8-11.1V5.7L12 2.8Z" />
+                  <path d="m8.4 12 2.4 2.4 4.9-5" />
+                </svg>
+              </div>
+              <div>
+                <span class="mode-label">DENEY GRUBU</span>
+                <h3 id="guarded-title">AgentGuard korumalı</h3>
+              </div>
+            </header>
+            <div id="guarded-result" class="result-card-body"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <span>AgentGuard güvenlik laboratuvarı</span>
+        <span class="footer-separator" aria-hidden="true"></span>
+        <span>İzole test verisi · Gerçek işlem yok</span>
+      </div>
+    </footer>
+  </body>
+</html>

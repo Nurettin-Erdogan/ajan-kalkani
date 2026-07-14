@@ -1,0 +1,104 @@
+name: AgentGuard CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Bağımlılıkları kur
+        run: python -m pip install -e ".[dev]"
+
+      - name: Testleri çalıştır
+        run: pytest
+
+      - name: Agent CI güvenlik değerlendirmesini çalıştır
+        if: always() && matrix.python-version == '3.12'
+        run: python -m agentguard --evaluate --report evaluation-report.json
+
+      - name: Değerlendirme raporunu yükle
+        if: always() && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentguard-evaluation-report
+          path: evaluation-report.json
+          if-no-files-found: warn
+
+  package:
+    name: Wheel paketleme smoke testi
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Python 3.12 kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build aracını kur
+        run: python -m pip install build
+
+      - name: Sdist ve wheel oluştur
+        run: python -m build
+
+      - name: Wheel içindeki statik dashboard dosyalarını doğrula
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          wheels = sorted(Path("dist").glob("*.whl"))
+          if len(wheels) != 1:
+              raise SystemExit(f"Tam olarak bir wheel bekleniyordu; bulunan: {wheels}")
+
+          required = {
+              "agentguard/static/index.html",
+              "agentguard/static/styles.css",
+              "agentguard/static/app.js",
+          }
+          with ZipFile(wheels[0]) as archive:
+              names = set(archive.namelist())
+
+          missing = sorted(required - names)
+          if missing:
+              raise SystemExit(f"Wheel statik dosyaları eksik: {missing}")
+          print(f"Wheel doğrulandı: {wheels[0]}")
+          PY
+
+  docker:
+    name: Docker build smoke testi
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Docker imajını oluştur
+        run: docker build --tag agentguard-ci .
+
+      - name: İmaj içindeki Python paketini doğrula
+        run: docker run --rm --entrypoint python agentguard-ci -c "import agentguard; from agentguard.api import app; assert app.title == 'AgentGuard API'"
