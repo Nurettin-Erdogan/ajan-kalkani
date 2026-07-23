@@ -7,9 +7,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 
+from ajan_kalkani import __version__
 from ajan_kalkani.evaluation import EvaluationReport, evaluate_all
 from ajan_kalkani.audit import AuditStore
-from ajan_kalkani.models import AuditEvaluationSummary, AuditIntegrityReport, AuditRunSummary, RunRequest, RunResult, ScenarioSummary
+from ajan_kalkani.laboratory import evaluate_policy
+from ajan_kalkani.models import AuditEvaluationSummary, AuditIntegrityReport, AuditRunSummary, PolicyEvaluationRequest, PolicyEvaluationResponse, RunRequest, RunResult, ScenarioSummary
 from ajan_kalkani.scenarios import get_scenario_summaries
 from ajan_kalkani.service import ScenarioNotFoundError, run_scenario
 
@@ -18,7 +20,7 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(
     title="Ajan Kalkanı API",
-    version="0.1.0",
+    version=__version__,
     description="AI ajanları için görev sözleşmeli güvenlik geçidi ve saldırı sandbox'ı.",
 )
 
@@ -63,12 +65,17 @@ async def security_headers(request: Request, call_next) -> Response:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": __version__}
 
 
 @app.get("/api/scenarios", response_model=list[ScenarioSummary])
 def scenarios() -> list[dict[str, object]]:
     return get_scenario_summaries()
+
+
+@app.post("/api/policy/evaluate", response_model=PolicyEvaluationResponse)
+def policy_evaluation(request: PolicyEvaluationRequest) -> PolicyEvaluationResponse:
+    return evaluate_policy(request)
 
 
 @app.post("/api/runs", response_model=RunResult)

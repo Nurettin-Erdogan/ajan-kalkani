@@ -21,7 +21,7 @@ class IntentContract(BaseModel):
 
 
 class ToolCall(BaseModel):
-    tool: str
+    tool: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
     arguments: dict[str, Any] = Field(default_factory=dict)
     origin: str = "user"
     data_labels: set[str] = Field(default_factory=set)
@@ -108,3 +108,39 @@ class AuditIntegrityReport(BaseModel):
     run_count: int
     evaluation_count: int
     broken_record_ids: list[str] = Field(default_factory=list)
+
+
+class ContractFinding(BaseModel):
+    code: str
+    severity: Literal["info", "warning", "critical"]
+    message: str
+    patterns: list[str] = Field(default_factory=list)
+
+
+class PolicyEvaluationRequest(BaseModel):
+    contract: IntentContract
+    calls: list[ToolCall] = Field(min_length=1, max_length=50)
+    mode: RunMode = RunMode.GUARDED
+
+
+class PolicyEvaluationItem(BaseModel):
+    position: int = Field(ge=1)
+    tool: str
+    origin: str
+    data_labels: list[str]
+    decision: PolicyDecision
+
+
+class PolicyEvaluationSummary(BaseModel):
+    total_calls: int
+    allowed_calls: int
+    blocked_calls: int
+    approval_requests: int
+    highest_risk: Literal["low", "medium", "high", "critical"]
+
+
+class PolicyEvaluationResponse(BaseModel):
+    mode: RunMode
+    summary: PolicyEvaluationSummary
+    findings: list[ContractFinding]
+    results: list[PolicyEvaluationItem]

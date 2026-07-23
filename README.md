@@ -54,6 +54,8 @@ görülebilir. Senaryolar sahtedir; gerçek e-posta, dosya, takvim veya harici w
 - Açıklanabilir karar ve olay izi
 - Bilinen hassas anahtar adlarını ve demo anahtarı biçimlerini izlerde maskeleyen MVP redaksiyonu
 - Redakte edilmiş koşu ve değerlendirme sonuçlarını yerel SQLite'a kaydeden denetim geçmişi
+- Geliştiricinin kendi capability sözleşmesini ve 50'ye kadar araç çağrısını yan etki oluşturmadan test edebildiği politika laboratuvarı
+- Genel izin, yüksek riskli onaysız capability, kural çakışması ve aşırı geniş joker kalıplarını bulan sözleşme analizi
 - FastAPI tabanlı API ve aynı sunucudan sunulan web dashboard'u
 - Pytest tabanlı API ve güvenlik regresyon testleri
 - Tüm senaryoları iki modda çalıştıran Ajan Kalkanı CI değerlendirme motoru ve JSON raporu
@@ -151,6 +153,7 @@ Bu bölüm projenin portföy değerini de güçlendirir: yalnızca bir güvenlik
 |---|---|---|
 | `GET` | `/api/health` | Servis sağlığı ve sürüm bilgisi |
 | `GET` | `/api/scenarios` | Kullanılabilir demo senaryoları |
+| `POST` | `/api/policy/evaluate` | Özel sözleşme ve araç çağrılarını salt-okunur değerlendirme |
 | `POST` | `/api/runs` | Bir senaryoyu `unprotected` veya `guarded` modda çalıştırma |
 | `POST` | `/api/evaluations` | Bütün senaryolar için Ajan Kalkanı CI raporu üretme |
 | `GET` | `/api/audit/runs` | Son redakte edilmiş koşu özetleri |
@@ -167,6 +170,26 @@ Temel koşu isteği:
 }
 ```
 
+Politika laboratuvarı isteği:
+
+```json
+{
+  "contract": {
+    "task": "Son e-postayı oku ve taslak hazırla",
+    "allow": ["email.read_latest", "email.create_draft"],
+    "deny": ["file.*"],
+    "approval_required": ["email.send", "webhook.*"]
+  },
+  "calls": [
+    {"tool": "email.read_latest", "data_labels": ["untrusted"]},
+    {"tool": "webhook.post", "data_labels": ["secret"]}
+  ],
+  "mode": "guarded"
+}
+```
+
+Bu uç nokta aracı çalıştırmaz ve `arguments` içeriğini yanıta geri yansıtmaz. Sonuç; her çağrının kararını, kural kimliğini, riski, toplu sayıları ve sözleşme bulgularını içerir.
+
 Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#7-http-api-sözleşmesi) içindedir.
 
 ## Proje yapısı
@@ -177,6 +200,7 @@ Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTU
 │   ├── __main__.py          # Sunucu komut satırı girişi
 │   ├── api.py               # FastAPI ve statik dashboard sunumu
 │   ├── evaluation.py        # Toplu senaryo değerlendirmesi ve kalite kapısı
+│   ├── laboratory.py        # Özel sözleşme analizi ve toplu politika değerlendirmesi
 │   ├── models.py            # Sözleşme, trace ve API modelleri
 │   ├── policy.py            # Intent-contract politika kararları
 │   ├── scenarios.py         # Deterministik saldırı senaryoları

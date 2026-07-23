@@ -13,6 +13,7 @@ Bu depodaki sürüm:
 - aynı senaryoyu `unprotected` ve `guarded` modda çalıştırır;
 - sonuçları sandbox yan etkilerinden hesaplar;
 - kararları redakte edilmiş olaylar olarak API ve dashboard'a döndürür ve yerel SQLite denetim deposuna kaydeder;
+- özel capability sözleşmeleriyle salt-okunur, toplu araç çağrısı değerlendirmesi yapar;
 - senaryo paketini toplu çalıştıran ilk Ajan Kalkanı CI kalite kapısını içerir.
 
 Gerçek model, MCP proxy, harici contract loader, kimlik doğrulamalı onay, merkezi/kurcalamaya dayanıklı olay deposu ve OpenTelemetry henüz yoktur.
@@ -30,6 +31,7 @@ flowchart TB
     subgraph App["Ajan Kalkanı uygulaması"]
         API["FastAPI"]
         EV["Evaluation runner"]
+        LAB["Policy laboratory"]
         SV["Simulation service"]
         CAT["Python senaryo ve contract kataloğu"]
         PE["PolicyEngine"]
@@ -47,6 +49,7 @@ flowchart TB
     CLI --> EV
     API --> SV
     API --> EV
+    API --> LAB
     EV --> SV
     CAT --> SV
     CAT --> PE
@@ -91,6 +94,10 @@ Bu araçlar ağa, kullanıcı dosya sistemine veya gerçek hesaplara erişmez.
 ### Evaluation runner
 
 Katalogdaki her senaryoyu iki modda çalıştırır, tekil `RunResult` nesnelerini küçültülmüş karşılaştırmalara dönüştürür ve kalite metriklerini hesaplar. CLI ve `POST /api/evaluations` aynı `evaluate_all()` fonksiyonunu kullanır.
+
+### Policy laboratory
+
+`POST /api/policy/evaluate`, istemcinin verdiği bir `IntentContract` ile en fazla 50 `ToolCall` nesnesini aynı `PolicyEngine` üzerinden değerlendirir. Araç adaptörü veya sandbox çağrılmaz; bu yol salt-okunurdur. Yanıt, çağrı argümanlarını geri yansıtmaz. Her sonuçta araç adı, sıralı veri etiketleri, karar, kural kimliği ve risk bulunur. Aynı yanıt ayrıca genel `*` izni, yüksek riskli onaysız araçlar, izin/ret/onay çakışmaları, yinelenen kurallar ve geniş joker kalıpları için sözleşme bulguları taşır.
 
 ### Yerel denetim deposu
 
@@ -222,7 +229,7 @@ Sunucunun kanonik, makine tarafından okunabilir şeması `/openapi.json` altın
 Yanıt (`200`):
 
 ```json
-{"status": "ok", "version": "0.1.0"}
+{"status": "ok", "version": "0.2.0"}
 ```
 
 ### `GET /api/scenarios`
@@ -302,6 +309,28 @@ Kısaltılmış fakat gerçek alan adlarını kullanan `RunResult` örneği:
 ```
 
 Gerçek yanıt planın bütün `events` kayıtlarını içerir. `status`; `completed`, `protected`, `compromised` veya `failed` olabilir. API, sandbox'ın ham son durumunu döndürmez.
+
+### `POST /api/policy/evaluate`
+
+İstek bir görev sözleşmesi, `guarded`/`unprotected` modu ve 1–50 araç çağrısı içerir. Bu uç nokta hiçbir aracı çalıştırmaz:
+
+```json
+{
+  "contract": {
+    "task": "Dosyayı incele",
+    "allow": ["file.read", "webhook.*"],
+    "deny": [],
+    "approval_required": []
+  },
+  "calls": [
+    {"tool": "file.read", "data_labels": ["secret"]},
+    {"tool": "webhook.post", "data_labels": ["secret"]}
+  ],
+  "mode": "guarded"
+}
+```
+
+Yanıt, ilk çağrı için `contract.allow`, ikinci çağrı için `dataflow.sensitive-to-external` kararını verir. `arguments` kabul edilse de olası hassas değerlerin yansımaması için yanıtta yer almaz. Boş çağrı listesi, 50'den büyük grup veya geçersiz araç adı `422` döndürür.
 
 ### `POST /api/evaluations`
 

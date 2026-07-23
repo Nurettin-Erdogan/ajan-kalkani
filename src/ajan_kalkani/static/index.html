@@ -8,6 +8,7 @@
       content="Ajan Kalkanı ile yapay zekâ ajanlarının araç çağrılarını güvenli bir sandbox ortamında karşılaştırın."
     />
     <title>Ajan Kalkanı | Ajan Güvenlik Laboratuvarı</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/static/styles.css" />
     <script src="/static/app.js" defer></script>
   </head>
@@ -135,6 +136,85 @@
         </div>
 
         <div id="notice" class="notice" role="alert" hidden></div>
+      </section>
+
+      <section class="policy-lab panel" aria-labelledby="policy-lab-title">
+        <div class="policy-lab-header">
+          <div>
+            <p class="section-kicker">POLİTİKA LABORATUVARI</p>
+            <h2 id="policy-lab-title">Kendi ajan sözleşmeni test et</h2>
+            <p>
+              Capability kurallarını ve ajanın deneyeceği araç çağrılarını gir. Ajan Kalkanı
+              hiçbir aracı çalıştırmadan hangi çağrının neden geçeceğini açıklar.
+            </p>
+          </div>
+          <span class="lab-safety-badge">YAN ETKİ YOK</span>
+        </div>
+
+        <form id="policy-form" class="policy-form">
+          <div class="policy-form-grid">
+            <label class="lab-field lab-field-wide" for="policy-task">
+              <span>Görev açıklaması</span>
+              <input
+                id="policy-task"
+                type="text"
+                maxlength="300"
+                value="Son e-postayı oku ve göndermeden yanıt taslağı hazırla"
+                required
+              />
+            </label>
+
+            <label class="lab-field" for="policy-allow">
+              <span>İzin verilenler</span>
+              <textarea id="policy-allow" rows="4">email.read_latest
+email.create_draft</textarea>
+              <small>Her satıra bir capability veya kalıp.</small>
+            </label>
+
+            <label class="lab-field" for="policy-deny">
+              <span>Açıkça yasaklananlar</span>
+              <textarea id="policy-deny" rows="4">file.*</textarea>
+              <small>Ret kuralları izinlerden önce uygulanır.</small>
+            </label>
+
+            <label class="lab-field" for="policy-approval">
+              <span>Onay gerektirenler</span>
+              <textarea id="policy-approval" rows="4">email.send
+webhook.*</textarea>
+              <small>MVP bu çağrıları çalıştırmadan engeller.</small>
+            </label>
+
+            <label class="lab-field lab-field-calls" for="policy-calls">
+              <span>Araç çağrıları</span>
+              <textarea id="policy-calls" rows="6" required>email.read_latest | untrusted
+file.read | secret, credential
+webhook.post | secret</textarea>
+              <small><code>araç.adı | etiket, etiket</code> biçimi; en fazla 50 satır.</small>
+            </label>
+          </div>
+
+          <div class="policy-form-actions">
+            <label class="lab-mode" for="policy-mode">
+              <span>Çalışma modu</span>
+              <select id="policy-mode">
+                <option value="guarded" selected>Korumalı</option>
+                <option value="unprotected">Korumasız karşılaştırma</option>
+              </select>
+            </label>
+            <button id="policy-button" class="primary-button" type="submit">
+              <span class="button-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" focusable="false">
+                  <path d="M4 5h12M4 10h12M4 15h8" />
+                </svg>
+              </span>
+              <span id="policy-button-label">Sözleşmeyi değerlendir</span>
+              <span class="button-spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+
+        <div id="policy-notice" class="notice policy-notice" role="alert" hidden></div>
+        <div id="policy-results" class="policy-results" aria-live="polite" hidden></div>
       </section>
 
       <section class="evaluation-panel panel" aria-labelledby="evaluation-title">

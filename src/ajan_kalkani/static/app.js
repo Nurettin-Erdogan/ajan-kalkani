@@ -6,6 +6,7 @@ const API = {
   evaluations: "/api/evaluations",
   auditRuns: "/api/audit/runs?limit=8",
   auditIntegrity: "/api/audit/integrity",
+  policyEvaluate: "/api/policy/evaluate",
 };
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
@@ -14,6 +15,7 @@ const state = {
   scenarios: [],
   running: false,
   evaluating: false,
+  evaluatingPolicy: false,
 };
 
 const elements = {
@@ -40,6 +42,17 @@ const elements = {
   evaluationFailures: document.querySelector("#evaluation-failures"),
   auditRuns: document.querySelector("#audit-runs"),
   auditSummary: document.querySelector("#audit-summary"),
+  policyForm: document.querySelector("#policy-form"),
+  policyTask: document.querySelector("#policy-task"),
+  policyAllow: document.querySelector("#policy-allow"),
+  policyDeny: document.querySelector("#policy-deny"),
+  policyApproval: document.querySelector("#policy-approval"),
+  policyCalls: document.querySelector("#policy-calls"),
+  policyMode: document.querySelector("#policy-mode"),
+  policyButton: document.querySelector("#policy-button"),
+  policyButtonLabel: document.querySelector("#policy-button-label"),
+  policyNotice: document.querySelector("#policy-notice"),
+  policyResults: document.querySelector("#policy-results"),
 };
 
 const DECISION_GROUPS = {
@@ -59,9 +72,180 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.runButton.addEventListener("click", runComparison);
   elements.retryButton.addEventListener("click", loadScenarios);
   elements.evaluationButton.addEventListener("click", runEvaluation);
+  elements.policyForm.addEventListener("submit", runPolicyEvaluation);
   loadScenarios();
   loadAuditRuns();
 });
+
+async function runPolicyEvaluation(event) {
+  event.preventDefault();
+  if (state.evaluatingPolicy) return;
+
+  let calls;
+  try {
+    calls = parsePolicyCalls(elements.policyCalls.value);
+  } catch (error) {
+    setPolicyNotice(error.message || "Araç çağrıları okunamadı.");
+    return;
+  }
+
+  const request = {
+    contract: {
+      task: elements.policyTask.value.trim(),
+      allow: parseRuleList(elements.policyAllow.value),
+      deny: parseRuleList(elements.policyDeny.value),
+      approval_required: parseRuleList(elements.policyApproval.value),
+    },
+    calls,
+    mode: elements.policyMode.value,
+  };
+
+  setPolicyRunning(true);
+  setPolicyNotice("");
+  elements.policyResults.hidden = true;
+
+  try {
+    const response = await fetchJson(API.policyEvaluate, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    renderPolicyEvaluation(response && typeof response === "object" ? response : {});
+    elements.policyResults.hidden = false;
+    setApiStatus("ready", "Politika değerlendirmesi tamamlandı");
+  } catch (error) {
+    setPolicyNotice(friendlyApiError(error));
+  } finally {
+    setPolicyRunning(false);
+  }
+}
+
+function parseRuleList(value) {
+  return [...new Set(String(value || "").split(/[\n,]/).map((item) => item.trim()).filter(Boolean))];
+}
+
+function parsePolicyCalls(value) {
+  const lines = String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) throw new Error("En az bir araç çağrısı yazmalısınız.");
+  if (lines.length > 50) throw new Error("Tek değerlendirmede en fazla 50 araç çağrısı kullanılabilir.");
+
+  return lines.map((line, index) => {
+    const [rawTool, rawLabels = ""] = line.split("|", 2);
+    const tool = rawTool.trim();
+    if (!/^[A-Za-z0-9_.:-]{1,128}$/.test(tool)) {
+      throw new Error(`${index + 1}. satırdaki araç adı geçersiz: ${tool || "boş"}`);
+    }
+    return {
+      tool,
+      origin: "policy-laboratory",
+      data_labels: parseRuleList(rawLabels),
+      arguments: {},
+    };
+  });
+}
+
+function renderPolicyEvaluation(response) {
+  const summary = response.summary && typeof response.summary === "object" ? response.summary : {};
+  const findings = Array.isArray(response.findings) ? response.findings : [];
+  const results = Array.isArray(response.results) ? response.results : [];
+  const modeLabel = response.mode === "unprotected" ? "Korumasız" : "Korumalı";
+
+  elements.policyResults.innerHTML = `
+    <div class="policy-result-heading">
+      <div>
+        <p class="section-kicker">DEĞERLENDİRME SONUCU</p>
+        <h3>${escapeHtml(modeLabel)} mod · ${escapeHtml(String(summary.total_calls ?? results.length))} çağrı</h3>
+      </div>
+      <span class="risk-chip risk-${escapeAttribute(normalizeRisk(summary.highest_risk))}">
+        ${escapeHtml(riskLabel(normalizeRisk(summary.highest_risk)))}
+      </span>
+    </div>
+    <div class="policy-summary-grid">
+      ${policySummaryCard("İzin verilen", summary.allowed_calls, "is-positive")}
+      ${policySummaryCard("Engellenen", summary.blocked_calls, "is-negative")}
+      ${policySummaryCard("Onay bekleyen", summary.approval_requests, "")}
+    </div>
+    ${contractFindingsTemplate(findings)}
+    <div class="policy-call-results">
+      ${results.map(policyResultRow).join("") || '<p class="audit-empty">Değerlendirme sonucu dönmedi.</p>'}
+    </div>
+  `;
+}
+
+function policySummaryCard(label, value, tone) {
+  const safeValue = Number.isFinite(Number(value)) ? Math.max(0, Math.round(Number(value))) : 0;
+  return `<div class="policy-summary-card ${tone}"><span>${escapeHtml(label)}</span><strong>${safeValue}</strong></div>`;
+}
+
+function contractFindingsTemplate(findings) {
+  if (!findings.length) {
+    return `
+      <section class="contract-findings is-clean">
+        <strong>Sözleşme analizi temiz</strong>
+        <span>Yaygın aşırı yetki veya kural çakışması bulunmadı.</span>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="contract-findings">
+      <h4>Sözleşme analizi</h4>
+      <div class="finding-list">
+        ${findings
+          .map((finding) => {
+            const severity = ["critical", "warning", "info"].includes(finding.severity)
+              ? finding.severity
+              : "info";
+            const patterns = Array.isArray(finding.patterns) && finding.patterns.length
+              ? `<code>${escapeHtml(finding.patterns.join(", "))}</code>`
+              : "";
+            return `
+              <article class="finding finding-${severity}">
+                <span>${severity === "critical" ? "KRİTİK" : severity === "warning" ? "UYARI" : "BİLGİ"}</span>
+                <div><strong>${escapeHtml(finding.message || "Sözleşme bulgusu")}</strong>${patterns}</div>
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function policyResultRow(item) {
+  const decision = item && item.decision && typeof item.decision === "object" ? item.decision : {};
+  const allowed = decision.allowed === true;
+  const requiresApproval = decision.requires_approval === true;
+  const stateClass = allowed ? "is-allowed" : requiresApproval ? "is-approval" : "is-blocked";
+  const stateLabel = allowed ? "İZİN" : requiresApproval ? "ONAY GEREKLİ" : "ENGELLENDİ";
+  const labels = Array.isArray(item.data_labels) ? item.data_labels : [];
+  return `
+    <article class="policy-call ${stateClass}">
+      <span class="policy-call-index">${escapeHtml(item.position || "–")}</span>
+      <div class="policy-call-main">
+        <div><code>${escapeHtml(item.tool || "bilinmeyen araç")}</code><span>${escapeHtml(stateLabel)}</span></div>
+        <p>${escapeHtml(decision.reason || "Karar açıklaması bulunmuyor.")}</p>
+        <small>${escapeHtml(decision.rule_id || "kural yok")}${labels.length ? ` · etiketler: ${escapeHtml(labels.join(", "))}` : ""}</small>
+      </div>
+    </article>
+  `;
+}
+
+function setPolicyRunning(running) {
+  state.evaluatingPolicy = running;
+  elements.policyButton.disabled = running;
+  elements.policyButton.classList.toggle("is-loading", running);
+  elements.policyButton.setAttribute("aria-busy", String(running));
+  elements.policyButtonLabel.textContent = running ? "Sözleşme değerlendiriliyor" : "Sözleşmeyi değerlendir";
+}
+
+function setPolicyNotice(message) {
+  elements.policyNotice.hidden = !message;
+  elements.policyNotice.textContent = message || "";
+}
 
 async function runEvaluation() {
   if (state.evaluating) return;

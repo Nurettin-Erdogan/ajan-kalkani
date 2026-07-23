@@ -55,7 +55,9 @@ body {
 }
 
 button,
-select {
+select,
+input,
+textarea {
   font: inherit;
 }
 
@@ -624,6 +626,372 @@ a {
   border-color: rgba(105, 205, 226, 0.25);
   background: var(--cyan-soft);
   color: #bfeaf3;
+}
+
+.policy-lab {
+  margin-top: 28px;
+  overflow: hidden;
+}
+
+.policy-lab-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 26px 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.policy-lab-header h2 {
+  margin: 5px 0 0;
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  letter-spacing: -0.035em;
+}
+
+.policy-lab-header p:last-child {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.lab-safety-badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(102, 232, 183, 0.25);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.policy-form {
+  padding: 24px 28px 28px;
+}
+
+.policy-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.lab-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lab-field-wide,
+.lab-field-calls {
+  grid-column: 1 / -1;
+}
+
+.lab-field > span,
+.lab-mode > span {
+  color: var(--text-soft);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.lab-field input,
+.lab-field textarea,
+.lab-mode select {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #091613;
+  color: var(--text);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.lab-field input {
+  min-height: 46px;
+  padding: 0 13px;
+}
+
+.lab-field textarea {
+  min-height: 112px;
+  resize: vertical;
+  padding: 11px 13px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.lab-field-calls textarea {
+  min-height: 140px;
+}
+
+.lab-field input:focus,
+.lab-field textarea:focus,
+.lab-mode select:focus {
+  border-color: rgba(102, 232, 183, 0.55);
+  box-shadow: 0 0 0 3px rgba(102, 232, 183, 0.08);
+  outline: none;
+}
+
+.lab-field small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.lab-field small code {
+  color: var(--cyan);
+  font-family: var(--mono);
+}
+
+.policy-form-actions {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.lab-mode {
+  display: grid;
+  min-width: 220px;
+  gap: 8px;
+}
+
+.lab-mode select {
+  min-height: 50px;
+  padding: 0 12px;
+}
+
+.policy-form-actions .primary-button {
+  min-width: 245px;
+}
+
+.policy-notice {
+  margin-top: -4px;
+}
+
+.policy-results {
+  margin: 0 28px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  background: rgba(3, 12, 10, 0.38);
+}
+
+.policy-result-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.policy-result-heading h3 {
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
+.policy-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.policy-summary-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.policy-summary-card span,
+.policy-summary-card strong {
+  display: block;
+}
+
+.policy-summary-card span {
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+
+.policy-summary-card strong {
+  margin-top: 3px;
+  font-size: 1.25rem;
+}
+
+.policy-summary-card.is-positive strong {
+  color: var(--mint);
+}
+
+.policy-summary-card.is-negative strong {
+  color: var(--danger);
+}
+
+.contract-findings {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 14px;
+}
+
+.contract-findings.is-clean {
+  display: grid;
+  gap: 3px;
+  border-color: rgba(102, 232, 183, 0.2);
+  background: var(--mint-soft);
+}
+
+.contract-findings.is-clean strong {
+  color: var(--mint);
+  font-size: 0.76rem;
+}
+
+.contract-findings.is-clean span {
+  color: var(--text-soft);
+  font-size: 0.69rem;
+}
+
+.contract-findings h4 {
+  margin: 0 0 10px;
+  font-size: 0.76rem;
+}
+
+.finding-list {
+  display: grid;
+  gap: 7px;
+}
+
+.finding {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 10px;
+  border-left: 2px solid var(--cyan);
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.finding > span {
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 0.59rem;
+  font-weight: 800;
+}
+
+.finding-warning {
+  border-left-color: var(--warning);
+}
+
+.finding-warning > span {
+  color: var(--warning);
+}
+
+.finding-critical {
+  border-left-color: var(--danger);
+}
+
+.finding-critical > span {
+  color: var(--danger);
+}
+
+.finding strong,
+.finding code {
+  display: block;
+}
+
+.finding strong {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.finding code {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.62rem;
+  overflow-wrap: anywhere;
+}
+
+.policy-call-results {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.policy-call {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 11px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--danger);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.policy-call.is-allowed {
+  border-left-color: var(--mint);
+}
+
+.policy-call.is-approval {
+  border-left-color: var(--warning);
+}
+
+.policy-call-index {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+}
+
+.policy-call-main > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.policy-call-main code {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.policy-call-main > div span {
+  color: var(--danger);
+  font-family: var(--mono);
+  font-size: 0.59rem;
+  font-weight: 800;
+}
+
+.policy-call.is-allowed .policy-call-main > div span {
+  color: var(--mint);
+}
+
+.policy-call.is-approval .policy-call-main > div span {
+  color: var(--warning);
+}
+
+.policy-call-main p {
+  margin: 5px 0 0;
+  color: var(--text-soft);
+  font-size: 0.7rem;
+}
+
+.policy-call-main small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.61rem;
 }
 
 .evaluation-panel {
@@ -1652,6 +2020,15 @@ a {
     width: 100%;
     min-width: 0;
   }
+
+  .policy-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lab-field-wide,
+  .lab-field-calls {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 560px) {
@@ -1715,6 +2092,49 @@ a {
 
   .evaluation-header {
     padding: 20px;
+  }
+
+  .policy-lab-header {
+    padding: 20px;
+  }
+
+  .lab-safety-badge {
+    display: none;
+  }
+
+  .policy-form {
+    padding: 20px;
+  }
+
+  .policy-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lab-mode,
+  .policy-form-actions .primary-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .policy-results {
+    margin: 0 20px 20px;
+    padding: 15px;
+  }
+
+  .policy-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .finding {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .policy-call-main > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
   }
 
   .evaluation-status {

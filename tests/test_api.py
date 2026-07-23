@@ -16,6 +16,7 @@ def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+    assert response.json()["version"] == "0.2.0"
     assert response.headers["cache-control"] == "no-store"
     assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
 
@@ -28,6 +29,8 @@ def test_api_docs_have_an_isolated_asset_policy() -> None:
 
     dashboard = client.get("/")
     assert "https://cdn.jsdelivr.net" not in dashboard.headers["content-security-policy"]
+    assert 'href="/static/favicon.svg"' in dashboard.text
+    assert client.get("/static/favicon.svg").status_code == 200
 
 
 def test_openapi_contract_contains_all_public_endpoints() -> None:
@@ -38,6 +41,7 @@ def test_openapi_contract_contains_all_public_endpoints() -> None:
         "/api/scenarios",
         "/api/runs",
         "/api/evaluations",
+        "/api/policy/evaluate",
         "/api/audit/runs",
         "/api/audit/runs/{run_id}",
         "/api/audit/evaluations",
@@ -123,3 +127,47 @@ def test_run_history_endpoints_return_redacted_persisted_result() -> None:
 
     invalid_limit = client.get("/api/audit/runs?limit=101")
     assert invalid_limit.status_code == 422
+
+
+def test_policy_laboratory_endpoint_evaluates_custom_contract() -> None:
+    response = client.post(
+        "/api/policy/evaluate",
+        json={
+            "contract": {
+                "task": "Dosyayı incele",
+                "allow": ["file.read", "webhook.*"],
+                "deny": [],
+                "approval_required": [],
+            },
+            "calls": [
+                {"tool": "file.read", "data_labels": ["secret"]},
+                {"tool": "webhook.post", "data_labels": ["secret"]},
+            ],
+            "mode": "guarded",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["summary"]["allowed_calls"] == 1
+    assert payload["summary"]["blocked_calls"] == 1
+    assert payload["results"][1]["decision"]["rule_id"] == "dataflow.sensitive-to-external"
+    assert any(
+        item["code"] == "contract.broad-allow-pattern"
+        for item in payload["findings"]
+    )
+
+
+def test_policy_laboratory_rejects_empty_or_oversized_batches() -> None:
+    base = {
+        "contract": {"task": "Test", "allow": []},
+        "mode": "guarded",
+    }
+    empty = client.post("/api/policy/evaluate", json={**base, "calls": []})
+    oversized = client.post(
+        "/api/policy/evaluate",
+        json={**base, "calls": [{"tool": "calendar.list"}] * 51},
+    )
+
+    assert empty.status_code == 422
+    assert oversized.status_code == 422
