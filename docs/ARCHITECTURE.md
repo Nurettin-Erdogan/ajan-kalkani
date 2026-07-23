@@ -12,10 +12,10 @@ Bu depodaki sürüm:
 - gerçek servisler yerine bellek içi e-posta, dosya, webhook ve takvim araçları kullanır;
 - aynı senaryoyu `unprotected` ve `guarded` modda çalıştırır;
 - sonuçları sandbox yan etkilerinden hesaplar;
-- kararları redakte edilmiş olaylar olarak API ve dashboard'a döndürür;
+- kararları redakte edilmiş olaylar olarak API ve dashboard'a döndürür ve yerel SQLite denetim deposuna kaydeder;
 - senaryo paketini toplu çalıştıran ilk Ajan Kalkanı CI kalite kapısını içerir.
 
-Gerçek model, MCP proxy, harici contract loader, kimlik doğrulamalı onay, kalıcı olay deposu ve OpenTelemetry henüz yoktur.
+Gerçek model, MCP proxy, harici contract loader, kimlik doğrulamalı onay, merkezi/kurcalamaya dayanıklı olay deposu ve OpenTelemetry henüz yoktur.
 
 ## 2. Bileşenler
 
@@ -33,7 +33,8 @@ flowchart TB
         SV["Simulation service"]
         CAT["Python senaryo ve contract kataloğu"]
         PE["PolicyEngine"]
-        RD["Trace redactor"]
+    RD["Trace redactor"]
+    AU["Redakte SQLite audit store"]
     end
 
     subgraph Sandbox["Sentetik sandbox sınırı"]
@@ -56,6 +57,7 @@ flowchart TB
     TOOLS --> SV
     SV --> RD
     RD --> API
+    API --> AU
     SV --> EV
 ```
 
@@ -89,6 +91,10 @@ Bu araçlar ağa, kullanıcı dosya sistemine veya gerçek hesaplara erişmez.
 ### Evaluation runner
 
 Katalogdaki her senaryoyu iki modda çalıştırır, tekil `RunResult` nesnelerini küçültülmüş karşılaştırmalara dönüştürür ve kalite metriklerini hesaplar. CLI ve `POST /api/evaluations` aynı `evaluate_all()` fonksiyonunu kullanır.
+
+### Yerel denetim deposu
+
+`POST /api/runs` ve `POST /api/evaluations` sonuçları, API'ye dönmeden önce zaten redakte edilmiş modellerden SQLite'a yazılır. Aynı türdeki her yeni kayıt önceki kaydın SHA-256 özetiyle bağlanır; zincir başı ve kayıt sayısı ayrı metadata'da saklanır. `/api/audit/integrity` değiştirilen veya çıkarılan kayıtlara ait izi doğrular. Varsayılan yol `data/ajan-kalkani-audit.sqlite3`, Docker içindeki yol `/data/ajan-kalkani-audit.sqlite3`'tür. `AJAN_KALKANI_AUDIT_DB` ile yol değiştirilebilir. Depo yalnızca yerel geliştirme/demoya yöneliktir; şifreleme, tenant ayrımı, saklama politikası, harici imza veya merkezi toplama sağlamaz.
 
 ## 3. Koşu akışı
 
@@ -356,6 +362,13 @@ Gövdesiz istek bütün katalog için `EvaluationReport` üretir. Aşağıdaki �
 
 Kalite kapısının `passed` değeri üç eşiğe dayanır: korumalı saldırı başarısı, korumalı görev başarısı ve güvenli senaryolardaki yanlış engelleme. `baseline_attack_success_rate` raporlanır ancak `EvaluationReport.passed` hesabında ayrı bir eşiği yoktur; mevcut pytest paketi varsayılan katalog için bu oranın `1.0` olduğunu ayrıca doğrular.
 
+### Denetim geçmişi uç noktaları
+
+- `GET /api/audit/runs?limit=20`: En fazla 100 son koşunun id, zaman, senaryo, mod ve sonuç özetini döndürür.
+- `GET /api/audit/runs/{run_id}`: Kalıcı depodaki tam redakte edilmiş `RunResult` kaydını döndürür; kayıt yoksa `404` verir.
+- `GET /api/audit/evaluations?limit=20`: Son toplu değerlendirmelerin id, zaman ve geçme durumunu döndürür.
+- `GET /api/audit/integrity`: Koşu ve değerlendirme hash zincirlerini doğrular. `valid: false` olursa `broken_record_ids` inceleme gerektiren kayıtları taşır.
+
 ### Hata davranışı
 
 - bilinmeyen `scenario_id`: `404`;
@@ -386,7 +399,7 @@ GitHub Actions:
 4. Her koşu yeni bir sentetik sandbox ile başlar.
 5. Görev ve saldırı başarısı ajan metninden değil sentetik yan etkiden hesaplanır.
 6. API ham sandbox durumu veya gerçek credential döndürmez.
-7. Sabit demo secret'ı olaylarda redakte edilir; bu, genel secret/PII redaksiyonu garantisi değildir.
+7. Sabit demo secret'ı olaylarda ve yerel denetim deposunda redakte edilir; bu, genel secret/PII redaksiyonu garantisi değildir.
 8. `task` metni capability listelerini kısıtlamaz; contract kalitesi operatör sorumluluğudur.
 9. `unprotected` modu gerçek yan etkili adaptörlerle kullanıma hazır değildir.
 

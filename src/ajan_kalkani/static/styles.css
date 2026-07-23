@@ -811,6 +811,100 @@ a {
   line-height: 1.55;
 }
 
+.audit-panel {
+  margin-top: 28px;
+  padding: 24px 28px 28px;
+}
+
+.audit-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.audit-heading h2 {
+  margin: 5px 0 0;
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  letter-spacing: -0.035em;
+}
+
+.audit-summary,
+.audit-intro,
+.audit-run span,
+.audit-empty {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.audit-summary.is-valid {
+  color: var(--mint);
+}
+
+.audit-summary.is-invalid {
+  color: var(--danger);
+}
+
+.audit-intro {
+  margin: 12px 0 16px;
+  line-height: 1.55;
+}
+
+.audit-runs {
+  display: grid;
+  gap: 8px;
+}
+
+.audit-run {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--mint);
+  border-radius: 10px;
+  padding: 11px 13px;
+  background: rgba(3, 12, 10, 0.3);
+}
+
+.audit-run.is-risk {
+  border-left-color: var(--danger);
+}
+
+.audit-run strong,
+.audit-run span {
+  display: block;
+}
+
+.audit-run strong {
+  font-size: 0.79rem;
+}
+
+.audit-run div > span {
+  margin-top: 3px;
+}
+
+.audit-outcome {
+  flex: 0 0 auto;
+  color: var(--mint) !important;
+  font-family: var(--mono);
+  font-size: 0.64rem !important;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.audit-run.is-risk .audit-outcome {
+  color: var(--danger) !important;
+}
+
+.audit-empty {
+  margin: 0;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  line-height: 1.5;
+}
+
 .results-section {
   padding-top: 72px;
 }

@@ -53,6 +53,7 @@ görülebilir. Senaryolar sahtedir; gerçek e-posta, dosya, takvim veya harici w
 - Aynı senaryoda `unprotected` / `guarded` karşılaştırması
 - Açıklanabilir karar ve olay izi
 - Bilinen hassas anahtar adlarını ve demo anahtarı biçimlerini izlerde maskeleyen MVP redaksiyonu
+- Redakte edilmiş koşu ve değerlendirme sonuçlarını yerel SQLite'a kaydeden denetim geçmişi
 - FastAPI tabanlı API ve aynı sunucudan sunulan web dashboard'u
 - Pytest tabanlı API ve güvenlik regresyon testleri
 - Tüm senaryoları iki modda çalıştıran Ajan Kalkanı CI değerlendirme motoru ve JSON raporu
@@ -105,6 +106,8 @@ docker compose up --build
 
 Compose portu güvenli yerel demo varsayımıyla yalnızca `127.0.0.1:8000` adresine yayınlanır. Uygulamayı başka bir ağa açmadan önce kimlik doğrulama, yetkilendirme ve rate limit eklenmelidir.
 
+Koşu geçmişi varsayılan olarak `data/ajan-kalkani-audit.sqlite3` dosyasına yazılır; bu dizin Git tarafından izlenmez. Konumu `AJAN_KALKANI_AUDIT_DB` ortam değişkeniyle değiştirebilirsiniz. Docker Compose aynı veriyi `ajan-kalkani-data` volume'unda saklar. Her kayıt kendi türü içinde önceki kaydın hash'ine bağlanır; zincir başı ve kayıt sayısı ayrı metadata'da tutulur. `/api/audit/integrity` değişiklik veya silme izini kontrol eder. Bu, diske tam yazma yetkisi olan bir saldırgana karşı kurcalamaya dayanıklı veya merkezi bir olay deposu değildir.
+
 Sunucu adresi `--host`, port ise `--port` ile değiştirilebilir:
 
 ```powershell
@@ -150,6 +153,10 @@ Bu bölüm projenin portföy değerini de güçlendirir: yalnızca bir güvenlik
 | `GET` | `/api/scenarios` | Kullanılabilir demo senaryoları |
 | `POST` | `/api/runs` | Bir senaryoyu `unprotected` veya `guarded` modda çalıştırma |
 | `POST` | `/api/evaluations` | Bütün senaryolar için Ajan Kalkanı CI raporu üretme |
+| `GET` | `/api/audit/runs` | Son redakte edilmiş koşu özetleri |
+| `GET` | `/api/audit/runs/{run_id}` | Kalıcı kayıttan bir koşunun tam redakte edilmiş sonucu |
+| `GET` | `/api/audit/evaluations` | Son toplu değerlendirme özetleri |
+| `GET` | `/api/audit/integrity` | Yerel denetim hash-zincirinin doğrulama sonucu |
 
 Temel koşu isteği:
 
@@ -197,7 +204,7 @@ Bu sürüm bilinçli olarak dar tutulmuştur:
 - Örnek YAML otomatik yüklenmez; harici contract loader veya policy yönetim API'si yoktur.
 - Organizasyon çapında kimlik/RBAC yoktur.
 - `approval_required` bir politika sonucudur; gerçek kimlik doğrulamalı onay iş akışı sonraki aşamadır.
-- Kalıcı, değiştirilemez denetim deposu ve dağıtık izleme henüz yoktur.
+- Denetim kaydı yerel SQLite'tır; değiştirilemez/kurcalamaya dayanıklı veya merkezi değildir.
 - Sandbox bir işletim sistemi veya konteyner güvenlik sınırı değildir.
 
 Bu nedenle proje mevcut haliyle üretim ortamındaki gerçek hesapları, sırları veya finansal işlemleri korumak için kullanılmamalıdır.

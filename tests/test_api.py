@@ -1,9 +1,15 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from ajan_kalkani.api import app
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def isolated_audit_database(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("AJAN_KALKANI_AUDIT_DB", str(tmp_path / "audit.sqlite3"))
 
 
 def test_health() -> None:
@@ -27,7 +33,16 @@ def test_api_docs_have_an_isolated_asset_policy() -> None:
 def test_openapi_contract_contains_all_public_endpoints() -> None:
     schema = client.get("/openapi.json").json()
     paths = schema["paths"]
-    assert {"/api/health", "/api/scenarios", "/api/runs", "/api/evaluations"} <= set(paths)
+    assert {
+        "/api/health",
+        "/api/scenarios",
+        "/api/runs",
+        "/api/evaluations",
+        "/api/audit/runs",
+        "/api/audit/runs/{run_id}",
+        "/api/audit/evaluations",
+        "/api/audit/integrity",
+    } <= set(paths)
 
     scenarios_schema = paths["/api/scenarios"]["get"]["responses"]["200"]["content"][
         "application/json"
@@ -79,3 +94,32 @@ def test_evaluation_endpoint_runs_the_agent_ci_suite() -> None:
     assert payload["metrics"]["guarded_attack_success_rate"] == 0.0
     assert len(payload["comparisons"]) == payload["metrics"]["scenario_count"]
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_run_history_endpoints_return_redacted_persisted_result() -> None:
+    created = client.post(
+        "/api/runs",
+        json={"scenario_id": "email_prompt_injection", "mode": "unprotected"},
+    )
+    assert created.status_code == 200
+
+    history = client.get("/api/audit/runs?limit=5")
+    assert history.status_code == 200
+    assert history.json()[0]["id"] == created.json()["id"]
+    assert "PROD_CREDENTIAL_7F3C1" not in history.text
+
+    loaded = client.get(f"/api/audit/runs/{created.json()['id']}")
+    assert loaded.status_code == 200
+    assert loaded.json()["id"] == created.json()["id"]
+    assert "PROD_CREDENTIAL_7F3C1" not in loaded.text
+
+    missing = client.get("/api/audit/runs/not-a-real-run")
+    assert missing.status_code == 404
+
+    integrity = client.get("/api/audit/integrity")
+    assert integrity.status_code == 200
+    assert integrity.json()["valid"] is True
+    assert integrity.json()["run_count"] == 1
+
+    invalid_limit = client.get("/api/audit/runs?limit=101")
+    assert invalid_limit.status_code == 422

@@ -4,6 +4,8 @@ const API = {
   scenarios: "/api/scenarios",
   runs: "/api/runs",
   evaluations: "/api/evaluations",
+  auditRuns: "/api/audit/runs?limit=8",
+  auditIntegrity: "/api/audit/integrity",
 };
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
@@ -36,6 +38,8 @@ const elements = {
   evaluationStatusDetail: document.querySelector("#evaluation-status-detail"),
   evaluationMetrics: document.querySelector("#evaluation-metrics"),
   evaluationFailures: document.querySelector("#evaluation-failures"),
+  auditRuns: document.querySelector("#audit-runs"),
+  auditSummary: document.querySelector("#audit-summary"),
 };
 
 const DECISION_GROUPS = {
@@ -56,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.retryButton.addEventListener("click", loadScenarios);
   elements.evaluationButton.addEventListener("click", runEvaluation);
   loadScenarios();
+  loadAuditRuns();
 });
 
 async function runEvaluation() {
@@ -75,6 +80,7 @@ async function runEvaluation() {
   try {
     const report = await fetchJson(API.evaluations, { method: "POST" });
     renderEvaluation(report && typeof report === "object" ? report : {});
+    loadAuditRuns();
     setApiStatus("ready", "Ajan Kalkanı CI tamamlandı");
   } catch (error) {
     setEvaluationStatus(
@@ -355,10 +361,66 @@ async function runComparison() {
   }
 
   setRunning(false);
+  loadAuditRuns();
 
   const resultsTop = document.querySelector("#results-title");
   if (resultsTop) resultsTop.focus?.({ preventScroll: true });
   document.querySelector("#results-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function loadAuditRuns() {
+  try {
+    const [runs, integrity] = await Promise.all([
+      fetchJson(API.auditRuns),
+      fetchJson(API.auditIntegrity),
+    ]);
+    renderAuditRuns(Array.isArray(runs) ? runs : [], integrity);
+  } catch (error) {
+    elements.auditSummary.textContent = "Denetim geçmişi yüklenemedi";
+    elements.auditSummary.classList.remove("is-valid");
+    elements.auditSummary.classList.add("is-invalid");
+    elements.auditRuns.innerHTML = `<p class="audit-empty">${escapeHtml(friendlyApiError(error))}</p>`;
+  }
+}
+
+function renderAuditRuns(runs, integrity) {
+  const integrityValid = integrity && integrity.valid === true;
+  const integrityLabel = integrityValid ? "bütünlük doğrulandı" : "bütünlük kontrolü gerekli";
+  elements.auditSummary.textContent = runs.length
+    ? `${runs.length} son koşu · ${integrityLabel}`
+    : integrityValid
+      ? "Henüz kayıt yok · bütünlük doğrulandı"
+      : integrityLabel;
+  elements.auditSummary.classList.toggle("is-valid", integrityValid);
+  elements.auditSummary.classList.toggle("is-invalid", !integrityValid);
+  if (!runs.length) {
+    elements.auditRuns.innerHTML = '<p class="audit-empty">İlk karşılaştırmayı çalıştırdığınızda redakte edilmiş kayıt burada görünecek.</p>';
+    return;
+  }
+
+  elements.auditRuns.innerHTML = runs
+    .map((run) => {
+      const compromised = run.attack_success === true;
+      const protectedRun = run.status === "protected";
+      const mode = run.mode === "guarded" ? "Korumalı" : "Korumasız";
+      const outcome = compromised ? "Saldırı başarılı" : protectedRun ? "Saldırı engellendi" : "Görev tamamlandı";
+      return `
+        <article class="audit-run ${compromised ? "is-risk" : "is-safe"}">
+          <div>
+            <strong>${escapeHtml(run.scenario_name || run.scenario_id || "Bilinmeyen senaryo")}</strong>
+            <span>${escapeHtml(mode)} · ${escapeHtml(formatAuditTime(run.created_at))}</span>
+          </div>
+          <span class="audit-outcome">${escapeHtml(outcome)}</span>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function formatAuditTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "zaman bilinmiyor";
+  return date.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
 }
 
 async function createRun(scenarioId, mode) {

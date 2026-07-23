@@ -19,6 +19,7 @@ tests
 docs
 examples
 evaluation-report.json
+data
 *.log
 .DS_Store
 Thumbs.db

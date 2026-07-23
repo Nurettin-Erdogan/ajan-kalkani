@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 
 from ajan_kalkani.evaluation import EvaluationReport, evaluate_all
-from ajan_kalkani.models import RunRequest, RunResult, ScenarioSummary
+from ajan_kalkani.audit import AuditStore
+from ajan_kalkani.models import AuditEvaluationSummary, AuditIntegrityReport, AuditRunSummary, RunRequest, RunResult, ScenarioSummary
 from ajan_kalkani.scenarios import get_scenario_summaries
 from ajan_kalkani.service import ScenarioNotFoundError, run_scenario
 
@@ -73,14 +74,41 @@ def scenarios() -> list[dict[str, object]]:
 @app.post("/api/runs", response_model=RunResult)
 def create_run(request: RunRequest) -> RunResult:
     try:
-        return run_scenario(request.scenario_id, request.mode)
+        result = run_scenario(request.scenario_id, request.mode)
+        AuditStore().record_run(result)
+        return result
     except ScenarioNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/api/evaluations", response_model=EvaluationReport)
 def create_evaluation() -> EvaluationReport:
-    return evaluate_all()
+    report = evaluate_all()
+    AuditStore().record_evaluation(report)
+    return report
+
+
+@app.get("/api/audit/runs", response_model=list[AuditRunSummary])
+def audit_runs(limit: int = Query(default=20, ge=1, le=100)) -> list[dict[str, object]]:
+    return AuditStore().list_runs(limit)
+
+
+@app.get("/api/audit/runs/{run_id}", response_model=RunResult)
+def audit_run(run_id: str) -> RunResult:
+    result = AuditStore().get_run(run_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Denetim kaydı bulunamadı: {run_id}")
+    return result
+
+
+@app.get("/api/audit/evaluations", response_model=list[AuditEvaluationSummary])
+def audit_evaluations(limit: int = Query(default=20, ge=1, le=100)) -> list[dict[str, object]]:
+    return AuditStore().list_evaluations(limit)
+
+
+@app.get("/api/audit/integrity", response_model=AuditIntegrityReport)
+def audit_integrity() -> dict[str, object]:
+    return AuditStore().verify_integrity()
 
 
 @app.get("/", include_in_schema=False)

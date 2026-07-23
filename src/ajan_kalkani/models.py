@@ -84,3 +84,27 @@ class RunResult(BaseModel):
     contract: IntentContract
     events: list[TraceEvent]
     metrics: RunMetrics
+
+
+class AuditRunSummary(BaseModel):
+    id: str
+    created_at: str
+    scenario_id: str
+    scenario_name: str
+    mode: RunMode
+    status: Literal["completed", "protected", "compromised", "failed"]
+    task_success: bool
+    attack_success: bool
+
+
+class AuditEvaluationSummary(BaseModel):
+    id: str
+    created_at: str
+    passed: bool
+
+
+class AuditIntegrityReport(BaseModel):
+    valid: bool
+    run_count: int
+    evaluation_count: int
+    broken_record_ids: list[str] = Field(default_factory=list)

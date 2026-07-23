@@ -19,10 +19,10 @@ MVP kapsamındaki bileşenler:
 - korumalı araç gateway'i;
 - `email`, `file`, `webhook` ve `calendar` sahte araçları;
 - bellek içi sentetik sandbox durumu;
-- redakte edilmiş olaylar ve koşu metrikleri;
+- redakte edilmiş olaylar, koşu metrikleri ve yerel SQLite denetim kayıtları;
 - `unprotected` ve `guarded` karşılaştırma koşuları.
 
-MVP'de gerçek model, gerçek MCP sunucusu, gerçek e-posta/dosya/takvim, harici ağ çağrısı, kalıcı veritabanı, kimlik doğrulama veya harici YAML contract loader yoktur. `examples/contracts` altındaki YAML yalnızca açıklayıcıdır.
+MVP'de gerçek model, gerçek MCP sunucusu, gerçek e-posta/dosya/takvim, harici ağ çağrısı, merkezi veya kurcalamaya dayanıklı kalıcı veritabanı, kimlik doğrulama veya harici YAML contract loader yoktur. Redakte edilmiş yerel SQLite kayıtları vardır. `examples/contracts` altındaki YAML yalnızca açıklayıcıdır.
 
 ## 3. Güvenlik hedefleri
 
@@ -146,7 +146,7 @@ Bu varsayımlar gerçek dağıtımda kendiliğinden geçerli değildir; altyapı
 | T-10 | Contract değiştirme veya TOCTOU | Koşu sırasında yetki genişler | Koşuya ait contract nesnesiyle deterministik çalışma | İmzalanmış/sürümlü policy snapshot ve hash'i trace'e eklenmeli |
 | T-11 | Sahte veya tekrar kullanılan insan onayı | Hassas eylem yetkisiz çalışır | MVP approval-required kararında eylemi çalıştırmaz | Kimlikli, süreli, tek kullanımlı ve parametreye bağlı onay jetonu gerekir |
 | T-12 | Olay, log veya hata mesajında sır sızması | Gizlilik ihlali | Olay input/output alanlarında hassas anahtar adı ve demo secret deseni tabanlı recursive redaksiyon | Etiketler redactor tarafından kullanılmaz; farklı secret/PII biçimleri ve hata detail'i kaçabilir |
-| T-13 | Olayların değiştirilmesi veya atılması | Yanlış olay incelemesi ve CI sonucu | Tek API yanıtında sıralı `step` ve `RunResult.id` | Kalıcı, eklemeli/kurcalamaya dayanıklı olay deposu ve imzalı export gerekir |
+| T-13 | Olayların değiştirilmesi veya atılması | Yanlış olay incelemesi ve CI sonucu | Redakte edilmiş yerel SQLite koşu kaydı, sıralı `step` ve `RunResult.id` | Yerel kayıt değiştirilebilir; eklemeli/kurcalamaya dayanıklı merkezi depo ve imzalı export gerekir |
 | T-14 | Çok büyük/tekrarlanan istek ve araç döngüsü | Kaynak tüketimi, hizmet kesintisi, maliyet | Deterministik ve sonlu MVP senaryoları | Body limiti, timeout, adım/token/maliyet bütçesi ve rate limit gerekir |
 | T-15 | Koşular/kiracılar arası durum karışması | Veri sızması veya yanlış metrik | Her koşu için yeni bellek içi sandbox | Kalıcı depoda tenant anahtarı, satır/politika izolasyonu ve silme politikası gerekir |
 | T-16 | Kimliksiz API'nin ağa açılması | Yetkisiz olay okuma, koşu ve toplu değerlendirme başlatma | CLI ve Compose host portu `127.0.0.1`; sentetik veri | TLS, authentication, RBAC, rate limit ve güvenli proxy yapılandırması gerekir |
