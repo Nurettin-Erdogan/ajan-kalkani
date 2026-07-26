@@ -7,6 +7,7 @@ const API = {
   auditRuns: "/api/audit/runs?limit=8",
   auditIntegrity: "/api/audit/integrity",
   policyEvaluate: "/api/policy/evaluate",
+  gatewaySessions: "/api/gateway/sessions",
 };
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
@@ -53,6 +54,8 @@ const elements = {
   policyButtonLabel: document.querySelector("#policy-button-label"),
   policyNotice: document.querySelector("#policy-notice"),
   policyResults: document.querySelector("#policy-results"),
+  gatewaySessionButton: document.querySelector("#gateway-session-button"),
+  gatewaySessionResult: document.querySelector("#gateway-session-result"),
 };
 
 const DECISION_GROUPS = {
@@ -73,6 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.retryButton.addEventListener("click", loadScenarios);
   elements.evaluationButton.addEventListener("click", runEvaluation);
   elements.policyForm.addEventListener("submit", runPolicyEvaluation);
+  elements.gatewaySessionButton.addEventListener("click", createGatewaySession);
   loadScenarios();
   loadAuditRuns();
 });
@@ -118,6 +122,66 @@ async function runPolicyEvaluation(event) {
   } finally {
     setPolicyRunning(false);
   }
+}
+
+async function createGatewaySession() {
+  if (state.evaluatingPolicy) return;
+  const task = elements.policyTask.value.trim();
+  if (!task) {
+    setPolicyNotice("Gateway oturumu için görev açıklaması gereklidir.");
+    return;
+  }
+
+  const request = {
+    name: task.slice(0, 120),
+    ttl_minutes: 60,
+    contract: {
+      task,
+      allow: parseRuleList(elements.policyAllow.value),
+      deny: parseRuleList(elements.policyDeny.value),
+      approval_required: parseRuleList(elements.policyApproval.value),
+    },
+  };
+
+  setPolicyRunning(true);
+  setPolicyNotice("");
+  elements.gatewaySessionResult.hidden = true;
+  try {
+    const session = await fetchJson(API.gatewaySessions, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    renderGatewaySession(session && typeof session === "object" ? session : {});
+    elements.gatewaySessionResult.hidden = false;
+    setApiStatus("ready", "Gateway oturumu hazır");
+  } catch (error) {
+    setPolicyNotice(friendlyApiError(error));
+  } finally {
+    setPolicyRunning(false);
+  }
+}
+
+function renderGatewaySession(session) {
+  const sessionId = String(session.id || "");
+  const endpoint = `/api/gateway/sessions/${encodeURIComponent(sessionId)}/authorize`;
+  const expiresAt = formatAuditTime(session.expires_at);
+  elements.gatewaySessionResult.innerHTML = `
+    <div class="gateway-session-heading">
+      <div>
+        <p class="section-kicker">RUNTIME GATEWAY HAZIR</p>
+        <h3>60 dakikalık sözleşme oturumu oluşturuldu</h3>
+      </div>
+      <span class="lab-safety-badge">AKTİF</span>
+    </div>
+    <div class="gateway-session-meta">
+      <span><strong>Oturum</strong><code>${escapeHtml(sessionId)}</code></span>
+      <span><strong>Süre sonu</strong><code>${escapeHtml(expiresAt)}</code></span>
+      <span><strong>Contract hash</strong><code>${escapeHtml(String(session.contract_hash || "").slice(0, 16))}…</code></span>
+    </div>
+    <p>Ajanınız her araç çağrısından önce aşağıdaki adrese <code>POST</code> isteği göndermeli ve yalnızca <code>decision.allowed=true</code> ise aracı çalıştırmalıdır.</p>
+    <code class="gateway-endpoint">${escapeHtml(endpoint)}</code>
+  `;
 }
 
 function parseRuleList(value) {
@@ -237,6 +301,7 @@ function policyResultRow(item) {
 function setPolicyRunning(running) {
   state.evaluatingPolicy = running;
   elements.policyButton.disabled = running;
+  elements.gatewaySessionButton.disabled = running;
   elements.policyButton.classList.toggle("is-loading", running);
   elements.policyButton.setAttribute("aria-busy", String(running));
   elements.policyButtonLabel.textContent = running ? "Sözleşme değerlendiriliyor" : "Sözleşmeyi değerlendir";

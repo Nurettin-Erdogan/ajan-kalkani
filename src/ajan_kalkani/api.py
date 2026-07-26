@@ -9,9 +9,10 @@ from starlette.responses import Response
 
 from ajan_kalkani import __version__
 from ajan_kalkani.evaluation import EvaluationReport, evaluate_all
+from ajan_kalkani.gateway import GatewaySessionExpiredError, GatewaySessionNotFoundError, GatewayStore
 from ajan_kalkani.audit import AuditStore
 from ajan_kalkani.laboratory import evaluate_policy
-from ajan_kalkani.models import AuditEvaluationSummary, AuditIntegrityReport, AuditRunSummary, PolicyEvaluationRequest, PolicyEvaluationResponse, RunRequest, RunResult, ScenarioSummary
+from ajan_kalkani.models import AuditEvaluationSummary, AuditIntegrityReport, AuditRunSummary, GatewayAuthorizationRequest, GatewayDecisionRecord, GatewaySessionCreate, GatewaySessionDetail, GatewaySessionSummary, PolicyEvaluationRequest, PolicyEvaluationResponse, RunRequest, RunResult, ScenarioSummary
 from ajan_kalkani.scenarios import get_scenario_summaries
 from ajan_kalkani.service import ScenarioNotFoundError, run_scenario
 
@@ -76,6 +77,56 @@ def scenarios() -> list[dict[str, object]]:
 @app.post("/api/policy/evaluate", response_model=PolicyEvaluationResponse)
 def policy_evaluation(request: PolicyEvaluationRequest) -> PolicyEvaluationResponse:
     return evaluate_policy(request)
+
+
+@app.post("/api/gateway/sessions", response_model=GatewaySessionDetail, status_code=201)
+def create_gateway_session(request: GatewaySessionCreate) -> GatewaySessionDetail:
+    return GatewayStore().create_session(request)
+
+
+@app.get("/api/gateway/sessions", response_model=list[GatewaySessionSummary])
+def gateway_sessions(
+    limit: int = Query(default=20, ge=1, le=100),
+) -> list[GatewaySessionSummary]:
+    return GatewayStore().list_sessions(limit)
+
+
+@app.get("/api/gateway/sessions/{session_id}", response_model=GatewaySessionDetail)
+def gateway_session(session_id: str) -> GatewaySessionDetail:
+    session = GatewayStore().get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail=f"Gateway oturumu bulunamadı: {session_id}")
+    return session
+
+
+@app.post(
+    "/api/gateway/sessions/{session_id}/authorize",
+    response_model=GatewayDecisionRecord,
+)
+def authorize_gateway_call(
+    session_id: str,
+    request: GatewayAuthorizationRequest,
+) -> GatewayDecisionRecord:
+    try:
+        return GatewayStore().authorize(session_id, request)
+    except GatewaySessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except GatewaySessionExpiredError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc
+
+
+@app.get(
+    "/api/gateway/sessions/{session_id}/decisions",
+    response_model=list[GatewayDecisionRecord],
+)
+def gateway_decisions(
+    session_id: str,
+    limit: int = Query(default=50, ge=1, le=100),
+) -> list[GatewayDecisionRecord]:
+    try:
+        return GatewayStore().list_decisions(session_id, limit)
+    except GatewaySessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/api/runs", response_model=RunResult)

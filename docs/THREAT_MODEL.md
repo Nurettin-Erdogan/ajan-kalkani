@@ -21,6 +21,7 @@ MVP kapsamındaki bileşenler:
 - bellek içi sentetik sandbox durumu;
 - redakte edilmiş olaylar, koşu metrikleri ve yerel SQLite denetim kayıtları;
 - araç çalıştırmayan özel sözleşme/politika değerlendirme laboratuvarı;
+- süreli ve contract hash'li runtime gateway oturumları ile argümansız karar geçmişi;
 - `unprotected` ve `guarded` karşılaştırma koşuları.
 
 MVP'de gerçek model, gerçek MCP sunucusu, gerçek e-posta/dosya/takvim, harici ağ çağrısı, merkezi veya kurcalamaya dayanıklı kalıcı veritabanı, kimlik doğrulama veya harici YAML contract loader yoktur. Redakte edilmiş yerel SQLite kayıtları vardır. `examples/contracts` altındaki YAML yalnızca açıklayıcıdır.
@@ -155,6 +156,8 @@ Bu varsayımlar gerçek dağıtımda kendiliğinden geçerli değildir; altyapı
 | T-18 | Bağımlılık/tedarik zinciri saldırısı | Gateway dahil tüm güven sınırları aşılabilir | Dar bağımlılık seti ve sürüm aralıkları | Kilitli hash'ler, SBOM, imzalı build, tarama ve düzenli güncelleme gerekir |
 | T-19 | Deterministik demonun gerçek model güvenliği sanılması | Yanlış güven ve hatalı üretim kullanımı | README ve UI'da MVP/sentetik kapsamını açık belirtme | Gerçek modellerle çeşitli benchmark, adversarial test ve sürekli ölçüm gerekir |
 | T-20 | Politika laboratuvarına hassas araç argümanı gönderilmesi | API yanıtı veya tarayıcıda sırın görünmesi | Laboratuvar yanıtı `arguments` alanını geri yansıtmaz ve araç çalıştırmaz | İstek gövdesi reverse proxy/access log'larına yazılmamalı; üretimde merkezi redaksiyon gerekir |
+| T-21 | Gateway oturumunun yetkisiz oluşturulması veya karar geçmişinin okunması | Politika manipülasyonu veya metadata ifşası | Yerel bind varsayımı, süreli oturum ve değişmez contract hash'i | Üretimde kimlik doğrulama, RBAC, tenant ayrımı ve session sahipliği gerekir |
+| T-22 | Yetkilendirmeden sonra farklı argümanla araç çalıştırma | Karar ile yan etki arasında TOCTOU | Oturum contract'ı sabittir ve kanonik `ToolCall` SHA-256 özeti `request_hash` olarak karara bağlanır | Adapter aynı özeti çalıştırma anında doğrulamazsa veya gateway'i atlayan yol varsa kontrol etkisiz kalır |
 
 ## 9. Mevcut kontroller
 

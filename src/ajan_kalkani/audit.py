@@ -13,6 +13,7 @@ from typing import Any
 
 from ajan_kalkani.evaluation import EvaluationReport
 from ajan_kalkani.models import RunMode, RunResult
+from ajan_kalkani.storage import open_sqlite
 
 
 DEFAULT_AUDIT_DB = Path("data") / "ajan-kalkani-audit.sqlite3"
@@ -198,11 +199,13 @@ class AuditStore:
         return str(row["head_hash"]) if row else ""
 
     def _connection(self) -> sqlite3.Connection:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(self.path, timeout=5)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA journal_mode=WAL")
-        connection.execute("PRAGMA foreign_keys=ON")
+        return open_sqlite(
+            self.path,
+            schema="audit-v2",
+            initialize=self._initialize_schema,
+        )
+
+    def _initialize_schema(self, connection: sqlite3.Connection) -> None:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS runs (
@@ -251,7 +254,6 @@ class AuditStore:
         self._backfill_hashes(connection, "evaluations", "evaluation")
         self._ensure_metadata(connection, "runs")
         self._ensure_metadata(connection, "evaluations")
-        return connection
 
     @staticmethod
     def _ensure_hash_columns(connection: sqlite3.Connection, table: str) -> None:

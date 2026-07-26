@@ -16,7 +16,7 @@ def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["version"] == "0.2.0"
+    assert response.json()["version"] == "0.3.0"
     assert response.headers["cache-control"] == "no-store"
     assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
 
@@ -42,6 +42,10 @@ def test_openapi_contract_contains_all_public_endpoints() -> None:
         "/api/runs",
         "/api/evaluations",
         "/api/policy/evaluate",
+        "/api/gateway/sessions",
+        "/api/gateway/sessions/{session_id}",
+        "/api/gateway/sessions/{session_id}/authorize",
+        "/api/gateway/sessions/{session_id}/decisions",
         "/api/audit/runs",
         "/api/audit/runs/{run_id}",
         "/api/audit/evaluations",
@@ -171,3 +175,63 @@ def test_policy_laboratory_rejects_empty_or_oversized_batches() -> None:
 
     assert empty.status_code == 422
     assert oversized.status_code == 422
+
+
+def test_runtime_gateway_session_authorizes_and_audits_calls() -> None:
+    created = client.post(
+        "/api/gateway/sessions",
+        json={
+            "name": "Test ajanı",
+            "contract": {
+                "task": "E-posta taslağı hazırla",
+                "allow": ["email.read_latest"],
+                "deny": ["file.*"],
+                "approval_required": ["email.send"],
+            },
+            "ttl_minutes": 15,
+        },
+    )
+    assert created.status_code == 201
+    session_id = created.json()["id"]
+
+    allowed = client.post(
+        f"/api/gateway/sessions/{session_id}/authorize",
+        json={"call": {"tool": "email.read_latest"}},
+    )
+    blocked = client.post(
+        f"/api/gateway/sessions/{session_id}/authorize",
+        json={
+            "call": {
+                "tool": "file.read",
+                "arguments": {"path": "/secret"},
+                "data_labels": ["secret"],
+            }
+        },
+    )
+
+    assert allowed.status_code == 200
+    assert allowed.json()["decision"]["allowed"] is True
+    assert blocked.status_code == 200
+    assert blocked.json()["decision"]["rule_id"] == "contract.explicit-deny"
+    assert len(blocked.json()["request_hash"]) == 64
+    assert "/secret" not in blocked.text
+
+    detail = client.get(f"/api/gateway/sessions/{session_id}")
+    decisions = client.get(f"/api/gateway/sessions/{session_id}/decisions")
+    sessions = client.get("/api/gateway/sessions")
+    assert detail.json()["decision_count"] == 2
+    assert [item["sequence"] for item in decisions.json()] == [2, 1]
+    assert sessions.json()[0]["id"] == session_id
+
+
+def test_runtime_gateway_missing_session_and_limits() -> None:
+    missing = client.post(
+        "/api/gateway/sessions/missing/authorize",
+        json={"call": {"tool": "calendar.list"}},
+    )
+    decisions = client.get("/api/gateway/sessions/missing/decisions")
+    invalid_limit = client.get("/api/gateway/sessions?limit=101")
+
+    assert missing.status_code == 404
+    assert decisions.status_code == 404
+    assert invalid_limit.status_code == 422

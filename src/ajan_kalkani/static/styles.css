@@ -769,6 +769,11 @@ a {
   min-width: 245px;
 }
 
+.gateway-session-button {
+  min-width: 210px;
+  margin-top: 0;
+}
+
 .policy-notice {
   margin-top: -4px;
 }
@@ -779,6 +784,84 @@ a {
   border-radius: var(--radius-lg);
   padding: 20px;
   background: rgba(3, 12, 10, 0.38);
+}
+
+.gateway-session-result {
+  margin: 0 28px 20px;
+  border: 1px solid rgba(102, 232, 183, 0.24);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  background: var(--mint-soft);
+}
+
+.gateway-session-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gateway-session-heading h3 {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+}
+
+.gateway-session-meta {
+  display: grid;
+  grid-template-columns: 1.3fr 0.8fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.gateway-session-meta > span {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px;
+  background: rgba(3, 12, 10, 0.24);
+}
+
+.gateway-session-meta strong,
+.gateway-session-meta code {
+  display: block;
+}
+
+.gateway-session-meta strong {
+  color: var(--muted);
+  font-size: 0.61rem;
+  text-transform: uppercase;
+}
+
+.gateway-session-meta code {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 0.63rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gateway-session-result > p {
+  margin: 13px 0 8px;
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.gateway-session-result > p code {
+  color: var(--cyan);
+}
+
+.gateway-endpoint {
+  display: block;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #07110f;
+  color: var(--mint);
+  font-size: 0.68rem;
+  white-space: nowrap;
 }
 
 .policy-result-heading {
@@ -2112,7 +2195,8 @@ a {
   }
 
   .lab-mode,
-  .policy-form-actions .primary-button {
+  .policy-form-actions .primary-button,
+  .gateway-session-button {
     width: 100%;
     min-width: 0;
   }
@@ -2120,6 +2204,15 @@ a {
   .policy-results {
     margin: 0 20px 20px;
     padding: 15px;
+  }
+
+  .gateway-session-result {
+    margin: 0 20px 20px;
+    padding: 15px;
+  }
+
+  .gateway-session-meta {
+    grid-template-columns: 1fr;
   }
 
   .policy-summary-grid {

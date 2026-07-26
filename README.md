@@ -56,6 +56,8 @@ görülebilir. Senaryolar sahtedir; gerçek e-posta, dosya, takvim veya harici w
 - Redakte edilmiş koşu ve değerlendirme sonuçlarını yerel SQLite'a kaydeden denetim geçmişi
 - Geliştiricinin kendi capability sözleşmesini ve 50'ye kadar araç çağrısını yan etki oluşturmadan test edebildiği politika laboratuvarı
 - Genel izin, yüksek riskli onaysız capability, kural çakışması ve aşırı geniş joker kalıplarını bulan sözleşme analizi
+- Ajanı süreli ve hash'lenmiş değişmez bir sözleşmeye bağlayan kalıcı runtime gateway oturumları
+- Her araç çağrısı için salt-okunur yetkilendirme kararı ve argüman saklamayan sıralı karar geçmişi
 - FastAPI tabanlı API ve aynı sunucudan sunulan web dashboard'u
 - Pytest tabanlı API ve güvenlik regresyon testleri
 - Tüm senaryoları iki modda çalıştıran Ajan Kalkanı CI değerlendirme motoru ve JSON raporu
@@ -154,6 +156,11 @@ Bu bölüm projenin portföy değerini de güçlendirir: yalnızca bir güvenlik
 | `GET` | `/api/health` | Servis sağlığı ve sürüm bilgisi |
 | `GET` | `/api/scenarios` | Kullanılabilir demo senaryoları |
 | `POST` | `/api/policy/evaluate` | Özel sözleşme ve araç çağrılarını salt-okunur değerlendirme |
+| `POST` | `/api/gateway/sessions` | Süreli, sözleşmeye bağlı runtime gateway oturumu oluşturma |
+| `GET` | `/api/gateway/sessions` | Son gateway oturumlarını listeleme |
+| `GET` | `/api/gateway/sessions/{session_id}` | Oturum sözleşmesi, hash'i, süresi ve karar sayısı |
+| `POST` | `/api/gateway/sessions/{session_id}/authorize` | Bir araç çağrısını sabit oturum sözleşmesine göre yetkilendirme |
+| `GET` | `/api/gateway/sessions/{session_id}/decisions` | Oturumun redakte ve sıralı karar geçmişi |
 | `POST` | `/api/runs` | Bir senaryoyu `unprotected` veya `guarded` modda çalıştırma |
 | `POST` | `/api/evaluations` | Bütün senaryolar için Ajan Kalkanı CI raporu üretme |
 | `GET` | `/api/audit/runs` | Son redakte edilmiş koşu özetleri |
@@ -190,6 +197,16 @@ Politika laboratuvarı isteği:
 
 Bu uç nokta aracı çalıştırmaz ve `arguments` içeriğini yanıta geri yansıtmaz. Sonuç; her çağrının kararını, kural kimliğini, riski, toplu sayıları ve sözleşme bulgularını içerir.
 
+## Runtime gateway entegrasyonu
+
+Politika laboratuvarındaki **Gateway oturumu oluştur** düğmesi, mevcut sözleşmeyi 60 dakikalık değişmez bir oturuma bağlar. Harici ajan veya MCP adaptörü daha sonra her araç çağrısından önce şu akışı uygular:
+
+1. `POST /api/gateway/sessions` ile sözleşmeyi kaydeder ve `session_id` alır.
+2. Her araç çağrısından önce `POST /api/gateway/sessions/{session_id}/authorize` adresine çağrı metadata'sını yollar.
+3. Yalnızca yanıtın `decision.allowed` alanı `true` ise gerçek aracı çalıştırır.
+
+Çalışan standart kütüphane örneği [examples/gateway_client.py](examples/gateway_client.py) dosyasındadır. Gateway karar kaydı araç adını, kaynağı, veri etiketlerini, politika kararını ve çağrının kanonik SHA-256 `request_hash` değerini saklar; `arguments` alanını diske veya yanıta geri yazmaz. Adaptör gerçek aracı çalıştırmadan önce aynı çağrıdan ürettiği özeti bu değerle karşılaştırabilir. Süresi dolan oturum yeni çağrılarda `410 Gone` döndürür.
+
 Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#7-http-api-sözleşmesi) içindedir.
 
 ## Proje yapısı
@@ -200,6 +217,7 @@ Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTU
 │   ├── __main__.py          # Sunucu komut satırı girişi
 │   ├── api.py               # FastAPI ve statik dashboard sunumu
 │   ├── evaluation.py        # Toplu senaryo değerlendirmesi ve kalite kapısı
+│   ├── gateway.py           # Kalıcı runtime oturumları ve araç yetkilendirme kaydı
 │   ├── laboratory.py        # Özel sözleşme analizi ve toplu politika değerlendirmesi
 │   ├── models.py            # Sözleşme, trace ve API modelleri
 │   ├── policy.py            # Intent-contract politika kararları
@@ -207,7 +225,7 @@ Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTU
 │   ├── service.py           # Koşu orkestrasyonu
 │   ├── sandbox.py           # Sahte email/file/webhook/calendar araçları
 │   └── static/              # Dashboard HTML, CSS ve JavaScript
-├── examples/contracts/          # Örnek görev sözleşmeleri
+├── examples/                    # Örnek sözleşme ve runtime gateway istemcisi
 ├── docs/                       # Mimari ve tehdit modeli
 ├── tests/                      # Otomatik testler
 ├── .github/workflows/ci.yml   # Python, wheel, Ajan Kalkanı CI ve Docker kontrolleri
@@ -227,6 +245,7 @@ Bu sürüm bilinçli olarak dar tutulmuştur:
 - Politika, senaryo kataloğunda operatörce tanımlanan capability listelerine uygulanır; `task` metni yetki üretmez.
 - Örnek YAML otomatik yüklenmez; harici contract loader veya policy yönetim API'si yoktur.
 - Organizasyon çapında kimlik/RBAC yoktur.
+- Gateway oturumlarını oluşturmak veya okumak için kimlik doğrulama yoktur; servis yalnızca güvenilen yerel ağda kullanılmalıdır.
 - `approval_required` bir politika sonucudur; gerçek kimlik doğrulamalı onay iş akışı sonraki aşamadır.
 - Denetim kaydı yerel SQLite'tır; değiştirilemez/kurcalamaya dayanıklı veya merkezi değildir.
 - Sandbox bir işletim sistemi veya konteyner güvenlik sınırı değildir.

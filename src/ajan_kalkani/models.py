@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -144,3 +145,38 @@ class PolicyEvaluationResponse(BaseModel):
     summary: PolicyEvaluationSummary
     findings: list[ContractFinding]
     results: list[PolicyEvaluationItem]
+
+
+class GatewaySessionCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    contract: IntentContract
+    ttl_minutes: int = Field(default=60, ge=1, le=1440)
+
+
+class GatewaySessionSummary(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+    expires_at: datetime
+    status: Literal["active", "expired"]
+    contract_hash: str
+    decision_count: int = Field(default=0, ge=0)
+
+
+class GatewaySessionDetail(GatewaySessionSummary):
+    contract: IntentContract
+
+
+class GatewayAuthorizationRequest(BaseModel):
+    call: ToolCall
+
+
+class GatewayDecisionRecord(BaseModel):
+    session_id: str
+    sequence: int = Field(ge=1)
+    created_at: datetime
+    tool: str
+    origin: str
+    data_labels: list[str]
+    request_hash: str
+    decision: PolicyDecision

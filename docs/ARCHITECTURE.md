@@ -14,6 +14,7 @@ Bu depodaki sürüm:
 - sonuçları sandbox yan etkilerinden hesaplar;
 - kararları redakte edilmiş olaylar olarak API ve dashboard'a döndürür ve yerel SQLite denetim deposuna kaydeder;
 - özel capability sözleşmeleriyle salt-okunur, toplu araç çağrısı değerlendirmesi yapar;
+- süreli ve hash'lenmiş sözleşme oturumlarıyla runtime araç yetkilendirme API'si sağlar;
 - senaryo paketini toplu çalıştıran ilk Ajan Kalkanı CI kalite kapısını içerir.
 
 Gerçek model, MCP proxy, harici contract loader, kimlik doğrulamalı onay, merkezi/kurcalamaya dayanıklı olay deposu ve OpenTelemetry henüz yoktur.
@@ -32,6 +33,7 @@ flowchart TB
         API["FastAPI"]
         EV["Evaluation runner"]
         LAB["Policy laboratory"]
+        GW["Runtime gateway sessions"]
         SV["Simulation service"]
         CAT["Python senaryo ve contract kataloğu"]
         PE["PolicyEngine"]
@@ -50,6 +52,7 @@ flowchart TB
     API --> SV
     API --> EV
     API --> LAB
+    API --> GW
     EV --> SV
     CAT --> SV
     CAT --> PE
@@ -98,6 +101,10 @@ Katalogdaki her senaryoyu iki modda çalıştırır, tekil `RunResult` nesneleri
 ### Policy laboratory
 
 `POST /api/policy/evaluate`, istemcinin verdiği bir `IntentContract` ile en fazla 50 `ToolCall` nesnesini aynı `PolicyEngine` üzerinden değerlendirir. Araç adaptörü veya sandbox çağrılmaz; bu yol salt-okunurdur. Yanıt, çağrı argümanlarını geri yansıtmaz. Her sonuçta araç adı, sıralı veri etiketleri, karar, kural kimliği ve risk bulunur. Aynı yanıt ayrıca genel `*` izni, yüksek riskli onaysız araçlar, izin/ret/onay çakışmaları, yinelenen kurallar ve geniş joker kalıpları için sözleşme bulguları taşır.
+
+### Runtime gateway sessions
+
+Runtime gateway, bir ajan koşusunu oluşturma anındaki `IntentContract` nesnesine bağlar. Contract kanonik JSON'a çevrilip SHA-256 ile özetlenir; oturum için güncelleme endpoint'i bulunmaz. Her yetkilendirme isteği `guarded` modda aynı `PolicyEngine` üzerinden geçer. Karar tablosu oturum içinde artan `sequence`, araç adı, kaynak, veri etiketleri, bütün `ToolCall` nesnesinin kanonik SHA-256 `request_hash` değeri ve `PolicyDecision` saklar; ham `arguments` saklanmaz. Oturum süresi 1–1440 dakika olabilir ve süre dolduktan sonra yetkilendirme endpoint'i `410 Gone` döndürür.
 
 ### Yerel denetim deposu
 
@@ -229,7 +236,7 @@ Sunucunun kanonik, makine tarafından okunabilir şeması `/openapi.json` altın
 Yanıt (`200`):
 
 ```json
-{"status": "ok", "version": "0.2.0"}
+{"status": "ok", "version": "0.3.0"}
 ```
 
 ### `GET /api/scenarios`
@@ -332,6 +339,16 @@ Gerçek yanıt planın bütün `events` kayıtlarını içerir. `status`; `compl
 
 Yanıt, ilk çağrı için `contract.allow`, ikinci çağrı için `dataflow.sensitive-to-external` kararını verir. `arguments` kabul edilse de olası hassas değerlerin yansımaması için yanıtta yer almaz. Boş çağrı listesi, 50'den büyük grup veya geçersiz araç adı `422` döndürür.
 
+### Runtime gateway endpointleri
+
+- `POST /api/gateway/sessions`: Ad, contract ve `ttl_minutes` ile değişmez oturum oluşturur.
+- `GET /api/gateway/sessions`: Oturumları süre ve karar sayısıyla listeler.
+- `GET /api/gateway/sessions/{session_id}`: Contract, contract hash'i ve oturum metadata'sını döndürür.
+- `POST /api/gateway/sessions/{session_id}/authorize`: Tek `ToolCall` için karar üretir ve redakte metadata'yı sıralı kaydeder.
+- `GET /api/gateway/sessions/{session_id}/decisions`: En yeni karar önce olacak şekilde geçmişi döndürür.
+
+Runtime gateway gerçek aracı kendi başına çağırmaz. Entegrasyon adaptörü, aracı yalnızca `decision.allowed == true` sonucundan sonra çalıştırmak ve gateway dışındaki doğrudan credential/ağ yolunu kapatmak zorundadır.
+
 ### `POST /api/evaluations`
 
 Gövdesiz istek bütün katalog için `EvaluationReport` üretir. Aşağıdaki örnekte `comparisons` tek senaryoya kısaltılmıştır:
@@ -431,6 +448,8 @@ GitHub Actions:
 7. Sabit demo secret'ı olaylarda ve yerel denetim deposunda redakte edilir; bu, genel secret/PII redaksiyonu garantisi değildir.
 8. `task` metni capability listelerini kısıtlamaz; contract kalitesi operatör sorumluluğudur.
 9. `unprotected` modu gerçek yan etkili adaptörlerle kullanıma hazır değildir.
+10. Runtime gateway karar kayıtları ham araç argümanlarını saklamaz; çağrıyı `request_hash` ile karara bağlar.
+11. Süresi dolan gateway oturumu yeni araç çağrısı yetkilendiremez.
 
 ## 10. Hedef entegrasyon mimarisi
 
