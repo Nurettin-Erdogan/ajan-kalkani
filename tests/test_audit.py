@@ -1,4 +1,6 @@
 import sqlite3
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 from ajan_kalkani.audit import AuditStore
 from ajan_kalkani.evaluation import evaluate_all
@@ -39,6 +41,67 @@ def test_integrity_check_detects_modified_payload(tmp_path) -> None:
     report = store.verify_integrity()
     assert report["valid"] is False
     assert report["broken_record_ids"] == [result.id]
+
+
+def test_integrity_check_does_not_repair_tampering_during_startup(tmp_path) -> None:
+    database = tmp_path / "records.sqlite3"
+    store = AuditStore(database)
+    result = run_scenario("safe_email_draft", RunMode.GUARDED)
+    store.record_run(result)
+
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE runs SET previous_hash = ? WHERE id = ?",
+            ("tampered", result.id),
+        )
+        connection.row_factory = sqlite3.Row
+        store._initialize_schema(connection)
+
+    report = store.verify_integrity()
+
+    assert report["valid"] is False
+    assert result.id in report["broken_record_ids"]
+
+
+def test_integrity_check_detects_modified_summary_columns(tmp_path) -> None:
+    database = tmp_path / "records.sqlite3"
+    store = AuditStore(database)
+    result = run_scenario("safe_email_draft", RunMode.GUARDED)
+    store.record_run(result)
+
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE runs SET status = ?, attack_success = ? WHERE id = ?",
+            ("compromised", 1, result.id),
+        )
+
+    report = store.verify_integrity()
+
+    assert report["valid"] is False
+    assert result.id in report["broken_record_ids"]
+
+
+def test_concurrent_run_writes_preserve_hash_chain(tmp_path) -> None:
+    class SlowAuditStore(AuditStore):
+        @staticmethod
+        def _last_hash(connection, table):
+            head = AuditStore._last_hash(connection, table)
+            time.sleep(0.005)
+            return head
+
+    store = SlowAuditStore(tmp_path / "records.sqlite3")
+    results = [
+        run_scenario("email_prompt_injection", RunMode.GUARDED)
+        for _ in range(32)
+    ]
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(executor.map(store.record_run, results))
+
+    report = store.verify_integrity()
+
+    assert report["valid"] is True
+    assert report["run_count"] == len(results)
 
 
 def test_integrity_check_detects_deleted_tail_record(tmp_path) -> None:
