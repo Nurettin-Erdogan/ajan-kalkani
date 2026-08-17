@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ajan_kalkani.evaluation import EvaluationReport
-from ajan_kalkani.models import RunMode, RunResult
+from ajan_kalkani.models import RunResult
 from ajan_kalkani.storage import open_sqlite
 
 
@@ -55,6 +55,10 @@ class AuditStore:
         payload = _redact(result.model_dump(mode="json"))
         created_at = datetime.now(timezone.utc).isoformat()
         with self._connection() as connection:
+            # The previous head and the new record must be written as one
+            # serialized operation. A deferred transaction lets concurrent
+            # requests read the same head and create a forked hash chain.
+            connection.execute("BEGIN IMMEDIATE")
             previous_hash = self._last_hash(connection, "runs")
             entry_hash = self._entry_hash("run", result.id, created_at, payload, previous_hash)
             connection.execute(
@@ -82,6 +86,7 @@ class AuditStore:
     def record_evaluation(self, report: EvaluationReport) -> None:
         payload = _redact(report.model_dump(mode="json"))
         with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             created_at = report.created_at.isoformat()
             previous_hash = self._last_hash(connection, "evaluations")
             entry_hash = self._entry_hash("evaluation", report.id, created_at, payload, previous_hash)
@@ -140,16 +145,22 @@ class AuditStore:
             for table, kind in (("runs", "run"), ("evaluations", "evaluation")):
                 previous_hash = ""
                 rows = connection.execute(
-                    f"SELECT id, created_at, payload, previous_hash, entry_hash FROM {table} ORDER BY rowid ASC"
+                    f"SELECT * FROM {table} ORDER BY rowid ASC"
                 ).fetchall()
                 for row in rows:
+                    summary_matches = False
                     counts[table] += 1
                     try:
                         payload = json.loads(row["payload"])
                         expected_hash = self._entry_hash(kind, row["id"], row["created_at"], payload, previous_hash)
+                        summary_matches = self._summary_matches_payload(table, row, payload)
                     except (json.JSONDecodeError, TypeError):
                         expected_hash = ""
-                    if row["previous_hash"] != previous_hash or row["entry_hash"] != expected_hash:
+                    if (
+                        row["previous_hash"] != previous_hash
+                        or row["entry_hash"] != expected_hash
+                        or not summary_matches
+                    ):
                         broken_record_ids.append(row["id"])
                     previous_hash = row["entry_hash"]
                 metadata = connection.execute(
@@ -168,6 +179,29 @@ class AuditStore:
             "evaluation_count": counts["evaluations"],
             "broken_record_ids": broken_record_ids,
         }
+
+    @staticmethod
+    def _summary_matches_payload(
+        table: str,
+        row: sqlite3.Row,
+        payload: dict[str, Any],
+    ) -> bool:
+        """Materialized list fields must agree with the hash-protected payload."""
+
+        if not isinstance(payload, dict):
+            return False
+        if table == "runs":
+            return (
+                row["scenario_id"] == payload.get("scenario_id")
+                and row["scenario_name"] == payload.get("scenario_name")
+                and row["mode"] == payload.get("mode")
+                and row["status"] == payload.get("status")
+                and bool(row["task_success"]) is bool(payload.get("task_success"))
+                and bool(row["attack_success"]) is bool(payload.get("attack_success"))
+            )
+        if table == "evaluations":
+            return bool(row["passed"]) is bool(payload.get("passed"))
+        return False
 
     @staticmethod
     def _entry_hash(
@@ -271,7 +305,10 @@ class AuditStore:
             f"SELECT id, created_at, payload, previous_hash, entry_hash FROM {table} ORDER BY rowid ASC"
         ).fetchall()
         for row in rows:
-            if row["previous_hash"] == previous_hash and row["entry_hash"]:
+            if row["entry_hash"]:
+                # Populated hashes are evidence, even when they do not match
+                # the current chain. Rewriting them here would erase a
+                # tampering signal during application startup.
                 previous_hash = row["entry_hash"]
                 continue
             payload = json.loads(row["payload"])
