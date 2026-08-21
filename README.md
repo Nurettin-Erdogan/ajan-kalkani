@@ -7,7 +7,9 @@
 **AI ajanlarının araç yetkilerini, operatörün önceden tanımladığı capability sözleşmesiyle sınırlayan çalışma zamanı güvenlik geçidi ve test ortamı.**
 
 <p align="center">
-  <a href="#çalışan-demo"><strong>Demoyu çalıştır →</strong></a>
+  <a href="docs/demo-guide.md"><strong>3 dakikalık demo →</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#çalışan-demo">Demo ayrıntıları</a>
   &nbsp;·&nbsp;
   <a href="docs/ARCHITECTURE.md">Mimari</a>
   &nbsp;·&nbsp;
