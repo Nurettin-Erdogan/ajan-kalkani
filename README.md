@@ -1,6 +1,29 @@
 # Ajan Kalkanı
 
+<p align="center">
+  <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/ci.yml"><img src="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI durumu"></a>
+</p>
+
 **AI ajanlarının araç yetkilerini, operatörün önceden tanımladığı capability sözleşmesiyle sınırlayan çalışma zamanı güvenlik geçidi ve test ortamı.**
+
+<p align="center">
+  <a href="#çalışan-demo"><strong>Demoyu çalıştır →</strong></a>
+  &nbsp;·&nbsp;
+  <a href="docs/ARCHITECTURE.md">Mimari</a>
+  &nbsp;·&nbsp;
+  <a href="docs/THREAT_MODEL.md">Tehdit modeli</a>
+</p>
+
+## Portföy özeti
+
+| | |
+| --- | --- |
+| **Problem** | Prompt injection alan bir AI ajanının dosya, e-posta veya webhook araçlarında gerçek yan etki oluşturabilmesi |
+| **Çözüm** | Her araç çağrısını çalışmadan önce capability sözleşmesine göre değerlendiren, varsayılan-ret çalışma zamanı geçidi |
+| **Zor mühendislik kararları** | Korumasız/korumalı aynı senaryo karşılaştırması, açıklanabilir karar izi ve eşzamanlı yazımlarda da doğrulanabilen SQLite hash zinciri |
+| **Doğrulama** | 50 otomatik test, deterministik saldırı senaryoları ve güvenlik regresyonunda CI'ı durduran kalite kapısı |
+
+Bu proje; AI güvenliğini yalnızca prompt kurallarıyla değil, yürütme katmanında en az yetki, denetlenebilirlik ve test edilebilir politikalarla ele aldığımı gösterir.
 
 Ajan Kalkanı, bir AI ajanı ile e-posta, dosya, webhook ve takvim gibi araçların arasına yerleşir. Her araç çağrısını operatörce yazılmış `allow`, `deny` ve `approval_required` listeleriyle karşılaştırır; izin verilen işlemleri geçirir, diğerlerini çalışmadan önce durdurur ve kararı denetlenebilir bir iz olarak kaydeder. `task` alanı insan tarafından okunabilir bağlamdır; MVP bu metinden semantik olarak yetki çıkarmaz veya sözleşmenin görevle tutarlı olduğunu kanıtlamaz.
 
