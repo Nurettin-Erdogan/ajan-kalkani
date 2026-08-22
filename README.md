@@ -16,6 +16,11 @@
   <a href="docs/THREAT_MODEL.md">Tehdit modeli</a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/prompt-injection-comparison.jpg" alt="Korumasız ajan ile Ajan Kalkanı korumalı modun prompt injection karşılaştırması" width="1100">
+</p>
+<p align="center"><sub>Gerçek deterministik sandbox koşusu: aynı saldırı, korumasız ve Ajan Kalkanı modlarında yan yana.</sub></p>
+
 ## Portföy özeti
 
 | | |
