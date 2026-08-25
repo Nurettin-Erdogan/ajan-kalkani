@@ -7,6 +7,13 @@
       name="description"
       content="Ajan Kalkanı ile yapay zekâ ajanlarının araç çağrılarını güvenli bir sandbox ortamında karşılaştırın."
     />
+    <meta property="og:title" content="Ajan Kalkanı | Ajan Güvenlik Laboratuvarı" />
+    <meta
+      property="og:description"
+      content="Prompt injection saldırılarını korumasız ve capability-sınırlı AI ajanlarında yan yana çalıştırın."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
     <title>Ajan Kalkanı | Ajan Güvenlik Laboratuvarı</title>
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/static/styles.css" />
@@ -288,7 +295,8 @@ webhook.post | secret</textarea>
           <span id="audit-summary" class="audit-summary" aria-live="polite">Kayıtlar yükleniyor</span>
         </div>
         <p class="audit-intro">
-          Koşular redakte edilerek yerel SQLite deposunda tutulur. Ayrıntılı sonucu API üzerinden tekrar açabilirsiniz.
+          Koşular redakte edilerek SQLite deposunda tutulur. Canlı serverless vitrinde geçmiş
+          geçicidir; yerel kurulumda kalıcıdır.
         </p>
         <div id="audit-runs" class="audit-runs" aria-live="polite"></div>
       </section>
@@ -384,6 +392,10 @@ webhook.post | secret</textarea>
         <span>Ajan Kalkanı güvenlik laboratuvarı</span>
         <span class="footer-separator" aria-hidden="true"></span>
         <span>İzole test verisi · Gerçek işlem yok</span>
+        <span class="footer-separator" aria-hidden="true"></span>
+        <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani" target="_blank" rel="noreferrer">
+          GitHub kaynak kodu
+        </a>
       </div>
     </footer>
   </body>

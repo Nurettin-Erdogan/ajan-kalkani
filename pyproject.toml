@@ -28,6 +28,9 @@ dev = [
 [project.scripts]
 ajan-kalkani = "ajan_kalkani.__main__:main"
 
+[tool.vercel]
+entrypoint = "app:app"
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 include-package-data = true
