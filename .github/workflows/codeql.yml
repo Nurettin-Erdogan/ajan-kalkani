@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Kodu al
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: CodeQL'yi başlat
         uses: github/codeql-action/init@v4
