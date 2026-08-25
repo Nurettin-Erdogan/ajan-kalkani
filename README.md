@@ -7,6 +7,8 @@
 **AI ajanlarının araç yetkilerini, operatörün önceden tanımladığı capability sözleşmesiyle sınırlayan çalışma zamanı güvenlik geçidi ve test ortamı.**
 
 <p align="center">
+  <a href="https://ajan-kalkani.vercel.app"><strong>Canlı demoyu aç →</strong></a>
+  &nbsp;·&nbsp;
   <a href="docs/demo-guide.md"><strong>3 dakikalık demo →</strong></a>
   &nbsp;·&nbsp;
   <a href="#çalışan-demo">Demo ayrıntıları</a>
@@ -141,6 +143,8 @@ docker compose up --build
 Compose portu güvenli yerel demo varsayımıyla yalnızca `127.0.0.1:8000` adresine yayınlanır. Uygulamayı başka bir ağa açmadan önce kimlik doğrulama, yetkilendirme ve rate limit eklenmelidir.
 
 ### Vercel canlı demo dağıtımı
+
+Canlı vitrin: [https://ajan-kalkani.vercel.app](https://ajan-kalkani.vercel.app)
 
 Kök dizindeki `app.py`, FastAPI uygulamasını Vercel'in Python çalışma zamanına açar.
 Dağıtım dosya sistemi salt okunur olduğu için canlı demo, sentetik ve redakte edilmiş
