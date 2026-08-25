@@ -1,7 +1,13 @@
+import importlib.util
 from pathlib import Path
 import tempfile
 
-import app as vercel_entrypoint
+
+ENTRYPOINT = Path(__file__).parents[1] / "app.py"
+SPEC = importlib.util.spec_from_file_location("vercel_entrypoint", ENTRYPOINT)
+assert SPEC is not None and SPEC.loader is not None
+vercel_entrypoint = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(vercel_entrypoint)
 
 
 def test_vercel_entrypoint_exports_fastapi_app() -> None:
