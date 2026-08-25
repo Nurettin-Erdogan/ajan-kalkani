@@ -140,6 +140,13 @@ docker compose up --build
 
 Compose portu güvenli yerel demo varsayımıyla yalnızca `127.0.0.1:8000` adresine yayınlanır. Uygulamayı başka bir ağa açmadan önce kimlik doğrulama, yetkilendirme ve rate limit eklenmelidir.
 
+### Vercel canlı demo dağıtımı
+
+Kök dizindeki `app.py`, FastAPI uygulamasını Vercel'in Python çalışma zamanına açar.
+Dağıtım dosya sistemi salt okunur olduğu için canlı demo, sentetik ve redakte edilmiş
+SQLite kayıtlarını geçici çalışma dizisinde tutar. Bu geçmiş function instance'ları arasında
+kalıcı değildir; kalıcı denetim izi için Docker veya yerel kurulum kullanılmalıdır.
+
 Koşu geçmişi varsayılan olarak `data/ajan-kalkani-audit.sqlite3` dosyasına yazılır; bu dizin Git tarafından izlenmez. Konumu `AJAN_KALKANI_AUDIT_DB` ortam değişkeniyle değiştirebilirsiniz. Docker Compose aynı veriyi `ajan-kalkani-data` volume'unda saklar. Her kayıt kendi türü içinde önceki kaydın hash'ine bağlanır; zincir başı ve kayıt sayısı ayrı metadata'da tutulur. `/api/audit/integrity` değişiklik veya silme izini kontrol eder. Bu, diske tam yazma yetkisi olan bir saldırgana karşı kurcalamaya dayanıklı veya merkezi bir olay deposu değildir.
 
 Sunucu adresi `--host`, port ise `--port` ile değiştirilebilir:

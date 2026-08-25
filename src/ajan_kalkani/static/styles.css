@@ -1960,6 +1960,17 @@ a {
   font-size: 0.7rem;
 }
 
+.footer-inner a {
+  color: var(--mint);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.footer-inner a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .footer-separator {
   width: 3px;
   height: 3px;
