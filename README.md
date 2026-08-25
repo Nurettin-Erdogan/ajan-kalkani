@@ -1,6 +1,10 @@
 # Ajan Kalkanı
 
 <p align="center">
+  <img src="src/ajan_kalkani/static/social-preview.png" alt="Ajan Kalkanı — niyet odaklı ajan güvenliği" width="1100">
+</p>
+
+<p align="center">
   <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/ci.yml"><img src="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI durumu"></a>
 </p>
 

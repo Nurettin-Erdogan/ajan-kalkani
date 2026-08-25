@@ -80,6 +80,7 @@ jobs:
               "ajan_kalkani/static/styles.css",
               "ajan_kalkani/static/app.js",
               "ajan_kalkani/static/favicon.svg",
+              "ajan_kalkani/static/social-preview.png",
           }
           with ZipFile(wheels[0]) as archive:
               names = set(archive.namelist())
