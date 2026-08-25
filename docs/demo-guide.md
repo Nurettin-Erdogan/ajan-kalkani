@@ -4,7 +4,8 @@ Bu senaryo Ajan Kalkanı'nın prompt injection'ı “çözdüğünü” iddia et
 
 ## Hazırlık
 
-- `start-ajan-kalkani.cmd` veya `python -m ajan_kalkani` ile dashboard'u aç.
+- Kurulumsuz vitrin için [canlı demoyu](https://ajan-kalkani.vercel.app) aç veya
+  `start-ajan-kalkani.cmd` / `python -m ajan_kalkani` ile dashboard'u yerelde çalıştır.
 - Demo yalnızca sahte e-posta, dosya, webhook ve takvim araçlarını kullanır; gerçek dış sistemlere yan etki oluşturmaz.
 - Başlangıçta audit integrity sonucunun temiz olduğunu doğrula.
 
