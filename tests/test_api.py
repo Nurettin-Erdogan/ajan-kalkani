@@ -1,10 +1,25 @@
-from fastapi.testclient import TestClient
+from urllib.parse import urlparse
+
 import pytest
+from fastapi.testclient import TestClient
 
 from ajan_kalkani.api import app
 
 
 client = TestClient(app)
+
+
+def _csp_hosts(policy: str, directive: str) -> set[str]:
+    values = next(
+        part.strip().split()[1:]
+        for part in policy.split(";")
+        if part.strip().startswith(f"{directive} ")
+    )
+    return {
+        host
+        for value in values
+        if (host := urlparse(value).hostname) is not None
+    }
 
 
 @pytest.fixture(autouse=True)
@@ -24,11 +39,15 @@ def test_health() -> None:
 def test_api_docs_have_an_isolated_asset_policy() -> None:
     response = client.get("/docs")
     assert response.status_code == 200
-    assert "https://cdn.jsdelivr.net" in response.headers["content-security-policy"]
+    assert _csp_hosts(response.headers["content-security-policy"], "script-src") == {
+        "cdn.jsdelivr.net"
+    }
     assert "swagger-ui" in response.text.lower()
 
     dashboard = client.get("/")
-    assert "https://cdn.jsdelivr.net" not in dashboard.headers["content-security-policy"]
+    assert _csp_hosts(
+        dashboard.headers["content-security-policy"], "script-src"
+    ) == set()
     assert 'href="/static/favicon.svg"' in dashboard.text
     assert client.get("/static/favicon.svg").status_code == 200
 
