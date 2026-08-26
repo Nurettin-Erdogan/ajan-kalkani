@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Özel güvenlik bildirimi
+    url: https://github.com/Nurettin-Erdogan/ajan-kalkani/security/policy
+    about: Güvenlik açıklarını herkese açık issue yerine özel kanaldan bildirin.
+

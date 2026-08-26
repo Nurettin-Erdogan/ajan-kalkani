@@ -1,0 +1,35 @@
+name: Hata bildirimi
+description: Yeniden üretilebilir bir çalışma zamanı, API veya dashboard hatasını bildirin.
+title: "[Hata]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Güvenlik açıklarını burada paylaşmayın; SECURITY.md içindeki özel bildirim yolunu kullanın.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Hata özeti
+      description: Beklenen politika kararı neydi, gerçekte ne oldu?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Yeniden üretme adımları
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Ortam
+      placeholder: Python 3.12, Windows 11 veya Docker
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redakte edilmiş kanıt
+      description: Gerçek anahtar, hassas araç argümanı veya kişisel veri eklemeyin.
+

@@ -1,0 +1,26 @@
+name: Özellik veya senaryo önerisi
+description: Yeni bir güvenlik problemi, capability veya saldırı senaryosu önerin.
+title: "[Öneri]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: threat
+    attributes:
+      label: Tehdit veya kullanıcı problemi
+      description: Korunması gereken varlık ve saldırganın hedefi nedir?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Önerilen yaklaşım
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Güvenlik kabul ölçütleri
+      description: Meşru görev başarısı ve saldırı başarısızlığı nasıl ölçülecek?
+    validations:
+      required: true
+
