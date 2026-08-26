@@ -174,4 +174,9 @@ def dashboard() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.head("/", include_in_schema=False)
+def dashboard_head() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

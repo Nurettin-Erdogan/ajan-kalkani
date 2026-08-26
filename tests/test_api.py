@@ -52,6 +52,15 @@ def test_api_docs_have_an_isolated_asset_policy() -> None:
     assert client.get("/static/favicon.svg").status_code == 200
 
 
+def test_dashboard_supports_head_requests() -> None:
+    response = client.head("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+    assert response.content == b""
+
+
 def test_openapi_contract_contains_all_public_endpoints() -> None:
     schema = client.get("/openapi.json").json()
     paths = schema["paths"]
