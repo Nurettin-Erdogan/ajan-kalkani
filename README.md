@@ -18,7 +18,7 @@
 <p align="center">
   <a href="https://ajan-kalkani.vercel.app"><strong>Canlı demoyu aç →</strong></a>
   &nbsp;·&nbsp;
-  <a href="docs/demo-guide.md"><strong>3 dakikalık demo →</strong></a>
+  <a href="docs/demo-guide.md"><strong>Canlı tur →</strong></a>
   &nbsp;·&nbsp;
   <a href="#çalışan-demo">Demo ayrıntıları</a>
   &nbsp;·&nbsp;
@@ -34,13 +34,13 @@
 </p>
 <p align="center"><sub>Gerçek deterministik sandbox koşusu: aynı saldırı, korumasız ve Ajan Kalkanı modlarında yan yana.</sub></p>
 
-## Portföy özeti
+## Özet
 
 | | |
 | --- | --- |
 | **Problem** | Prompt injection alan bir AI ajanının dosya, e-posta veya webhook araçlarında gerçek yan etki oluşturabilmesi |
 | **Çözüm** | Her araç çağrısını çalışmadan önce capability sözleşmesine göre değerlendiren, varsayılan-ret çalışma zamanı geçidi |
-| **Zor mühendislik kararları** | Korumasız/korumalı aynı senaryo karşılaştırması, açıklanabilir karar izi ve eşzamanlı yazımlarda da doğrulanabilen SQLite hash zinciri |
+| **Kararlar** | Korumasız/korumalı aynı senaryo karşılaştırması, açıklanabilir karar izi ve eşzamanlı yazımlarda da doğrulanabilen SQLite hash zinciri |
 | **Doğrulama** | 58 otomatik test, 3 Python sürümü, deterministik saldırı senaryoları ve güvenlik regresyonunda CI'ı durduran kalite kapısı |
 
 Ajan Kalkanı, AI güvenliğini prompt yasağına bırakmaz. Yürütme katmanında en az yetki, varsayılan-ret ve test edilebilir politika uygular.
