@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -32,6 +33,20 @@ app = FastAPI(
 _WRITE_RATE_LIMIT = 60
 _WRITE_RATE_WINDOW_SECONDS = 60
 _write_buckets: dict[str, list[float]] = defaultdict(list)
+_PUBLIC_EXPLORER_PATHS = {"/docs", "/redoc", "/openapi.json", "/docs/", "/redoc/"}
+
+
+def _is_public_demo() -> bool:
+    flag = os.getenv("AJAN_KALKANI_PUBLIC_DEMO", "").strip().lower()
+    return os.getenv("VERCEL") == "1" or flag in {"1", "true", "yes"}
+
+
+@app.middleware("http")
+async def hide_api_explorers_on_public_demo(request: Request, call_next) -> Response:
+    # Public Vercel demo keeps the dashboard; interactive API explorers stay local-only.
+    if _is_public_demo() and request.url.path in _PUBLIC_EXPLORER_PATHS:
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+    return await call_next(request)
 
 
 @app.middleware("http")

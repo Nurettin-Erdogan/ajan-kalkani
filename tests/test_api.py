@@ -27,6 +27,15 @@ def isolated_audit_database(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("AJAN_KALKANI_AUDIT_DB", str(tmp_path / "audit.sqlite3"))
 
 
+def test_public_demo_hides_api_explorers(monkeypatch) -> None:
+    monkeypatch.setenv("AJAN_KALKANI_PUBLIC_DEMO", "1")
+    assert client.get("/docs").status_code == 404
+    assert client.get("/redoc").status_code == 404
+    assert client.get("/openapi.json").status_code == 404
+    assert client.get("/").status_code == 200
+    assert client.get("/api/health").status_code == 200
+
+
 def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200

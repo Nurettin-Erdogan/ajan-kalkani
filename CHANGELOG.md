@@ -6,8 +6,11 @@
 
 ### Eklendi
 
+- Public demoda yazma API’leri için IP başına rate limit.
+- Vercel / `AJAN_KALKANI_PUBLIC_DEMO` ortamında Swagger, ReDoc ve OpenAPI keşfinin kapatılması.
+- Dashboard hero notu: sentetik sandbox ve demo sınırları.
 - Katkı rehberi, issue şablonları ve pull request güvenlik kontrol listesi.
-- README üzerinde görünür CodeQL ve lisans kanıtları.
+- README üzerinde görünür CodeQL, Python ve test kanıtları.
 
 ## [1.0.0] - 2026-08-26
 
