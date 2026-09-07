@@ -43,7 +43,7 @@
 | **Zor mühendislik kararları** | Korumasız/korumalı aynı senaryo karşılaştırması, açıklanabilir karar izi ve eşzamanlı yazımlarda da doğrulanabilen SQLite hash zinciri |
 | **Doğrulama** | 58 otomatik test, 3 Python sürümü, deterministik saldırı senaryoları ve güvenlik regresyonunda CI'ı durduran kalite kapısı |
 
-Bu proje; AI güvenliğini yalnızca prompt kurallarıyla değil, yürütme katmanında en az yetki, denetlenebilirlik ve test edilebilir politikalarla ele aldığımı gösterir.
+Ajan Kalkanı, AI güvenliğini prompt yasağına bırakmaz. Yürütme katmanında en az yetki, varsayılan-ret ve test edilebilir politika uygular.
 
 Ajan Kalkanı, bir AI ajanı ile e-posta, dosya, webhook ve takvim gibi araçların arasına yerleşir. Her araç çağrısını operatörce yazılmış `allow`, `deny` ve `approval_required` listeleriyle karşılaştırır; izin verilen işlemleri geçirir, diğerlerini çalışmadan önce durdurur ve kararı denetlenebilir bir iz olarak kaydeder. `task` alanı insan tarafından okunabilir bağlamdır; MVP bu metinden semantik olarak yetki çıkarmaz veya sözleşmenin görevle tutarlı olduğunu kanıtlamaz.
 
