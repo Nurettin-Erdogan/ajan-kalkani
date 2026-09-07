@@ -49,10 +49,24 @@ async def hide_api_explorers_on_public_demo(request: Request, call_next) -> Resp
     return await call_next(request)
 
 
+def _client_ip(request: Request) -> str:
+    """Prefer the first X-Forwarded-For hop on public demos behind a reverse proxy."""
+    if _is_public_demo():
+        forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        if forwarded:
+            return forwarded
+    return request.client.host if request.client else "unknown"
+
+
 @app.middleware("http")
 async def demo_write_rate_limit(request: Request, call_next) -> Response:
-    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path.startswith("/api/"):
-        client = request.client.host if request.client else "unknown"
+    # Soft abuse guard for the public Vercel demo only — local/dev stays unlimited.
+    if (
+        _is_public_demo()
+        and request.method in {"POST", "PUT", "PATCH", "DELETE"}
+        and request.url.path.startswith("/api/")
+    ):
+        client = _client_ip(request)
         now = time.monotonic()
         window_start = now - _WRITE_RATE_WINDOW_SECONDS
         bucket = [stamp for stamp in _write_buckets[client] if stamp >= window_start]

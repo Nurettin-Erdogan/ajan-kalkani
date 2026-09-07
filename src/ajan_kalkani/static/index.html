@@ -294,6 +294,13 @@ webhook.post | secret</textarea>
           hidden
         ></div>
 
+        <div
+          id="evaluation-comparisons"
+          class="evaluation-comparisons"
+          aria-label="Senaryo bazlı korumasız ve korumalı karşılaştırma"
+          hidden
+        ></div>
+
         <div id="evaluation-failures" class="evaluation-failures" role="alert" hidden></div>
       </section>
 
@@ -307,9 +314,10 @@ webhook.post | secret</textarea>
         </div>
         <p class="audit-intro">
           Koşular redakte edilerek SQLite deposunda tutulur. Canlı serverless vitrinde geçmiş
-          geçicidir; yerel kurulumda kalıcıdır.
+          geçicidir; yerel kurulumda kalıcıdır. Bir kayda tıklayınca redakte edilmiş zaman çizelgesi açılır.
         </p>
         <div id="audit-runs" class="audit-runs" aria-live="polite"></div>
+        <div id="audit-detail" class="audit-detail" aria-live="polite" hidden></div>
       </section>
 
       <section class="results-section" aria-labelledby="results-title">

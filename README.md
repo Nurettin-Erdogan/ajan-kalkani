@@ -9,7 +9,7 @@
   <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/codeql.yml"><img src="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL güvenlik analizi"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/lisans-MIT-0f766e.svg" alt="MIT Lisansı"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-0f766e.svg" alt="Python 3.11–3.13">
-  <img src="https://img.shields.io/badge/test-55%2B-0f766e.svg" alt="55+ otomatik test">
+  <img src="https://img.shields.io/badge/test-58-0f766e.svg" alt="58 otomatik test">
 </p>
 
 **AI ajanlarının araç yetkilerini, operatörün önceden tanımladığı capability sözleşmesiyle sınırlayan çalışma zamanı güvenlik geçidi ve test ortamı.**
@@ -40,7 +40,7 @@
 | **Problem** | Prompt injection alan bir AI ajanının dosya, e-posta veya webhook araçlarında gerçek yan etki oluşturabilmesi |
 | **Çözüm** | Her araç çağrısını çalışmadan önce capability sözleşmesine göre değerlendiren, varsayılan-ret çalışma zamanı geçidi |
 | **Zor mühendislik kararları** | Korumasız/korumalı aynı senaryo karşılaştırması, açıklanabilir karar izi ve eşzamanlı yazımlarda da doğrulanabilen SQLite hash zinciri |
-| **Doğrulama** | 55+ otomatik test, 3 Python sürümü, deterministik saldırı senaryoları ve güvenlik regresyonunda CI'ı durduran kalite kapısı |
+| **Doğrulama** | 58 otomatik test, 3 Python sürümü, deterministik saldırı senaryoları ve güvenlik regresyonunda CI'ı durduran kalite kapısı |
 
 Bu proje; AI güvenliğini yalnızca prompt kurallarıyla değil, yürütme katmanında en az yetki, denetlenebilirlik ve test edilebilir politikalarla ele aldığımı gösterir.
 
@@ -173,7 +173,7 @@ python -m ajan_kalkani --host 127.0.0.1 --port 8080
 
 ## Testler
 
-Toplam 55+ test; politika kararlarını, API davranışını, denetim zincirini, kalıcı gateway oturumlarını, paketlemeyi ve Vercel giriş noktasını doğrular. CI aynı paketi Python 3.11, 3.12 ve 3.13 üzerinde çalıştırır.
+Toplam 58 test; politika kararlarını, API davranışını, denetim zincirini, kalıcı gateway oturumlarını, paketlemeyi ve Vercel giriş noktasını doğrular. CI aynı paketi Python 3.11, 3.12 ve 3.13 üzerinde çalıştırır.
 
 ```powershell
 pytest

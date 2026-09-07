@@ -279,6 +279,7 @@ def test_write_rate_limit_returns_429(monkeypatch):
 
     import ajan_kalkani.api as api_module
 
+    monkeypatch.setenv("AJAN_KALKANI_PUBLIC_DEMO", "1")
     monkeypatch.setattr(api_module, "_WRITE_RATE_LIMIT", 3)
     monkeypatch.setattr(api_module, "_write_buckets", defaultdict(list))
 
@@ -289,3 +290,36 @@ def test_write_rate_limit_returns_429(monkeypatch):
     limited = client.post("/api/runs", json=payload)
     assert limited.status_code == 429
     assert limited.json()["detail"].startswith("Çok fazla istek")
+
+
+def test_write_rate_limit_skips_local_dev(monkeypatch):
+    from collections import defaultdict
+
+    import ajan_kalkani.api as api_module
+
+    monkeypatch.delenv("AJAN_KALKANI_PUBLIC_DEMO", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.setattr(api_module, "_WRITE_RATE_LIMIT", 1)
+    monkeypatch.setattr(api_module, "_write_buckets", defaultdict(list))
+
+    payload = {"scenario_id": "email_prompt_injection", "mode": "guarded"}
+    assert client.post("/api/runs", json=payload).status_code == 200
+    assert client.post("/api/runs", json=payload).status_code == 200
+
+
+def test_write_rate_limit_uses_forwarded_for(monkeypatch):
+    from collections import defaultdict
+
+    import ajan_kalkani.api as api_module
+
+    monkeypatch.setenv("AJAN_KALKANI_PUBLIC_DEMO", "1")
+    monkeypatch.setattr(api_module, "_WRITE_RATE_LIMIT", 1)
+    monkeypatch.setattr(api_module, "_write_buckets", defaultdict(list))
+
+    payload = {"scenario_id": "email_prompt_injection", "mode": "guarded"}
+    first = client.post("/api/runs", json=payload, headers={"X-Forwarded-For": "203.0.113.10"})
+    second = client.post("/api/runs", json=payload, headers={"X-Forwarded-For": "203.0.113.10"})
+    other = client.post("/api/runs", json=payload, headers={"X-Forwarded-For": "203.0.113.11"})
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert other.status_code == 200

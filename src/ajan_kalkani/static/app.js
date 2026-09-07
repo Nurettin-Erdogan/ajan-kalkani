@@ -17,6 +17,8 @@ const state = {
   running: false,
   evaluating: false,
   evaluatingPolicy: false,
+  gatewaySessionId: "",
+  selectedAuditRunId: "",
 };
 
 const elements = {
@@ -40,8 +42,10 @@ const elements = {
   evaluationStatusTitle: document.querySelector("#evaluation-status-title"),
   evaluationStatusDetail: document.querySelector("#evaluation-status-detail"),
   evaluationMetrics: document.querySelector("#evaluation-metrics"),
+  evaluationComparisons: document.querySelector("#evaluation-comparisons"),
   evaluationFailures: document.querySelector("#evaluation-failures"),
   auditRuns: document.querySelector("#audit-runs"),
+  auditDetail: document.querySelector("#audit-detail"),
   auditSummary: document.querySelector("#audit-summary"),
   policyForm: document.querySelector("#policy-form"),
   policyTask: document.querySelector("#policy-task"),
@@ -146,6 +150,7 @@ async function createGatewaySession() {
   setPolicyRunning(true);
   setPolicyNotice("");
   elements.gatewaySessionResult.hidden = true;
+  state.gatewaySessionId = "";
   try {
     const session = await fetchJson(API.gatewaySessions, {
       method: "POST",
@@ -162,8 +167,45 @@ async function createGatewaySession() {
   }
 }
 
+async function authorizeGatewayLabCalls() {
+  const sessionId = state.gatewaySessionId;
+  if (!sessionId || state.evaluatingPolicy) return;
+
+  let calls;
+  try {
+    calls = parsePolicyCalls(elements.policyCalls.value);
+  } catch (error) {
+    setPolicyNotice(error instanceof Error ? error.message : String(error));
+    return;
+  }
+
+  setPolicyRunning(true);
+  setPolicyNotice("");
+  const decisions = [];
+  try {
+    for (const call of calls) {
+      const response = await fetchJson(
+        `/api/gateway/sessions/${encodeURIComponent(sessionId)}/authorize`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ call }),
+        },
+      );
+      decisions.push(response && typeof response === "object" ? response : {});
+    }
+    renderGatewayDecisions(sessionId, decisions);
+    setApiStatus("ready", "Gateway kararları hazır");
+  } catch (error) {
+    setPolicyNotice(friendlyApiError(error));
+  } finally {
+    setPolicyRunning(false);
+  }
+}
+
 function renderGatewaySession(session) {
   const sessionId = String(session.id || "");
+  state.gatewaySessionId = sessionId;
   const endpoint = `/api/gateway/sessions/${encodeURIComponent(sessionId)}/authorize`;
   const expiresAt = formatAuditTime(session.expires_at);
   elements.gatewaySessionResult.innerHTML = `
@@ -181,6 +223,46 @@ function renderGatewaySession(session) {
     </div>
     <p>Ajanınız her araç çağrısından önce aşağıdaki adrese <code>POST</code> isteği göndermeli ve yalnızca <code>decision.allowed=true</code> ise aracı çalıştırmalıdır.</p>
     <code class="gateway-endpoint">${escapeHtml(endpoint)}</code>
+    <div class="gateway-session-actions">
+      <button id="gateway-authorize-button" class="secondary-button" type="button">
+        Bu lab çağrılarını yetkilendir
+      </button>
+      <p class="gateway-session-hint">Politika laboratuvarındaki araç satırlarını bu oturuma gönderir ve kararları burada gösterir.</p>
+    </div>
+    <div id="gateway-decisions" class="gateway-decisions" hidden></div>
+  `;
+  document
+    .querySelector("#gateway-authorize-button")
+    ?.addEventListener("click", authorizeGatewayLabCalls);
+}
+
+function renderGatewayDecisions(sessionId, decisions) {
+  const container = document.querySelector("#gateway-decisions");
+  if (!container) return;
+  container.hidden = false;
+  container.innerHTML = `
+    <p class="section-kicker">GATEWAY KARARLARI · ${escapeHtml(sessionId.slice(0, 8))}…</p>
+    <div class="gateway-decision-list">
+      ${decisions
+        .map((record, index) => {
+          const decision = record.decision && typeof record.decision === "object" ? record.decision : {};
+          const allowed = decision.allowed === true;
+          const tool = record.tool || decision.tool || `çağrı ${index + 1}`;
+          const reason =
+            decision.reason ||
+            decision.rule_id ||
+            decision.detail ||
+            (allowed ? "İzin verildi" : "Engellendi");
+          return `
+            <article class="gateway-decision ${allowed ? "is-allowed" : "is-denied"}">
+              <strong>${escapeHtml(String(tool))}</strong>
+              <span>${allowed ? "İZİN" : "ENGEL"}</span>
+              <p>${escapeHtml(String(reason))}</p>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
   `;
 }
 
@@ -323,6 +405,10 @@ async function runEvaluation() {
   );
   elements.evaluationMetrics.hidden = true;
   elements.evaluationMetrics.innerHTML = "";
+  if (elements.evaluationComparisons) {
+    elements.evaluationComparisons.hidden = true;
+    elements.evaluationComparisons.innerHTML = "";
+  }
   elements.evaluationFailures.hidden = true;
   elements.evaluationFailures.innerHTML = "";
 
@@ -413,6 +499,8 @@ function renderEvaluation(report) {
     .join("");
   elements.evaluationMetrics.hidden = false;
 
+  renderEvaluationComparisons(Array.isArray(report.comparisons) ? report.comparisons : []);
+
   const failures = Array.isArray(report.failures) ? report.failures : [];
   if (!passed) {
     const messages = failures.length
@@ -424,6 +512,77 @@ function renderEvaluation(report) {
     `;
     elements.evaluationFailures.hidden = false;
   }
+}
+
+function renderEvaluationComparisons(comparisons) {
+  if (!elements.evaluationComparisons) return;
+  if (!comparisons.length) {
+    elements.evaluationComparisons.hidden = true;
+    elements.evaluationComparisons.innerHTML = "";
+    return;
+  }
+
+  elements.evaluationComparisons.innerHTML = `
+    <div class="evaluation-comparisons-heading">
+      <p class="section-kicker">SENARYO KARŞILAŞTIRMASI</p>
+      <span>${comparisons.length} senaryo · korumasız vs korumalı</span>
+    </div>
+    <div class="evaluation-comparison-table" role="table" aria-label="Senaryo bazlı korumasız ve korumalı sonuçlar">
+      <div class="evaluation-comparison-row is-head" role="row">
+        <span role="columnheader">Senaryo</span>
+        <span role="columnheader">Korumasız</span>
+        <span role="columnheader">Korumalı</span>
+        <span role="columnheader">Blok</span>
+      </div>
+      ${comparisons
+        .map((item) => {
+          const unprotected = item.unprotected && typeof item.unprotected === "object" ? item.unprotected : {};
+          const guarded = item.guarded && typeof item.guarded === "object" ? item.guarded : {};
+          const isAttack = item.is_attack_scenario === true;
+          const unprotectedLabel = isAttack
+            ? unprotected.attack_success
+              ? "Saldırı geçti"
+              : "Saldırı durdu"
+            : unprotected.task_success
+              ? "Görev OK"
+              : "Görev kırık";
+          const guardedLabel = isAttack
+            ? guarded.attack_success
+              ? "Saldırı geçti"
+              : "Engellendi"
+            : guarded.task_success
+              ? "Görev OK"
+              : "Yanlış blok";
+          const unprotectedTone = isAttack
+            ? unprotected.attack_success
+              ? "is-negative"
+              : "is-positive"
+            : unprotected.task_success
+              ? "is-positive"
+              : "is-negative";
+          const guardedTone = isAttack
+            ? guarded.attack_success
+              ? "is-negative"
+              : "is-positive"
+            : guarded.task_success
+              ? "is-positive"
+              : "is-negative";
+          return `
+            <div class="evaluation-comparison-row" role="row">
+              <span role="cell">
+                <strong>${escapeHtml(item.scenario_name || item.scenario_id || "Senaryo")}</strong>
+                <small>${escapeHtml(isAttack ? "Saldırı" : "Güvenli görev")}</small>
+              </span>
+              <span role="cell" class="${unprotectedTone}">${escapeHtml(unprotectedLabel)}</span>
+              <span role="cell" class="${guardedTone}">${escapeHtml(guardedLabel)}</span>
+              <span role="cell">${escapeHtml(String(safeCount(guarded.blocked_calls)))}</span>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+  elements.evaluationComparisons.hidden = false;
 }
 
 function readableFailure(failure) {
@@ -634,7 +793,12 @@ async function loadAuditRuns() {
 
 function renderAuditRuns(runs, integrity) {
   const integrityValid = integrity && integrity.valid === true;
-  const integrityLabel = integrityValid ? "bütünlük doğrulandı" : "bütünlük kontrolü gerekli";
+  const brokenIds = Array.isArray(integrity?.broken_record_ids) ? integrity.broken_record_ids : [];
+  const integrityLabel = integrityValid
+    ? "bütünlük doğrulandı"
+    : brokenIds.length
+      ? `bütünlük bozuk · ${brokenIds.length} kayıt`
+      : "bütünlük kontrolü gerekli";
   elements.auditSummary.textContent = runs.length
     ? `${runs.length} son koşu · ${integrityLabel}`
     : integrityValid
@@ -642,6 +806,19 @@ function renderAuditRuns(runs, integrity) {
       : integrityLabel;
   elements.auditSummary.classList.toggle("is-valid", integrityValid);
   elements.auditSummary.classList.toggle("is-invalid", !integrityValid);
+  if (!integrityValid && brokenIds.length && elements.auditDetail) {
+    elements.auditDetail.hidden = false;
+    elements.auditDetail.innerHTML = `
+      <p class="audit-integrity-warning">
+        Bütünlük kontrolü başarısız. Bozuk kayıt kimlikleri:
+        <code>${escapeHtml(brokenIds.slice(0, 6).join(", "))}${brokenIds.length > 6 ? "…" : ""}</code>
+      </p>
+    `;
+  } else if (elements.auditDetail && !state.selectedAuditRunId) {
+    elements.auditDetail.hidden = true;
+    elements.auditDetail.innerHTML = "";
+  }
+
   if (!runs.length) {
     elements.auditRuns.innerHTML = '<p class="audit-empty">İlk karşılaştırmayı çalıştırdığınızda redakte edilmiş kayıt burada görünecek.</p>';
     return;
@@ -649,21 +826,65 @@ function renderAuditRuns(runs, integrity) {
 
   elements.auditRuns.innerHTML = runs
     .map((run) => {
+      const runId = String(run.id || "");
       const compromised = run.attack_success === true;
       const protectedRun = run.status === "protected";
       const mode = run.mode === "guarded" ? "Korumalı" : "Korumasız";
       const outcome = compromised ? "Saldırı başarılı" : protectedRun ? "Saldırı engellendi" : "Görev tamamlandı";
+      const selected = runId && runId === state.selectedAuditRunId;
       return `
-        <article class="audit-run ${compromised ? "is-risk" : "is-safe"}">
+        <button
+          type="button"
+          class="audit-run ${compromised ? "is-risk" : "is-safe"}${selected ? " is-selected" : ""}"
+          data-run-id="${escapeAttribute(runId)}"
+          aria-pressed="${selected ? "true" : "false"}"
+        >
           <div>
             <strong>${escapeHtml(run.scenario_name || run.scenario_id || "Bilinmeyen senaryo")}</strong>
             <span>${escapeHtml(mode)} · ${escapeHtml(formatAuditTime(run.created_at))}</span>
           </div>
           <span class="audit-outcome">${escapeHtml(outcome)}</span>
-        </article>
+        </button>
       `;
     })
     .join("");
+
+  elements.auditRuns.querySelectorAll("[data-run-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const runId = button.getAttribute("data-run-id");
+      if (runId) void loadAuditRunDetail(runId);
+    });
+  });
+}
+
+async function loadAuditRunDetail(runId) {
+  if (!elements.auditDetail) return;
+  state.selectedAuditRunId = runId;
+  elements.auditRuns.querySelectorAll("[data-run-id]").forEach((button) => {
+    const selected = button.getAttribute("data-run-id") === runId;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", selected ? "true" : "false");
+  });
+  elements.auditDetail.hidden = false;
+  elements.auditDetail.innerHTML = `<p class="audit-empty">Kayıt yükleniyor…</p>`;
+  try {
+    const result = await fetchJson(`/api/audit/runs/${encodeURIComponent(runId)}`);
+    const events = getEvents(result && typeof result === "object" ? result : {});
+    const mode = result?.mode === "guarded" ? "Korumalı" : "Korumasız";
+    const attack = result?.attack_success === true;
+    elements.auditDetail.innerHTML = `
+      <div class="audit-detail-heading">
+        <div>
+          <p class="section-kicker">DENETİM DETAYI</p>
+          <h3>${escapeHtml(result?.scenario_name || result?.scenario_id || "Koşu")}</h3>
+        </div>
+        <span class="audit-outcome ${attack ? "is-risk" : ""}">${escapeHtml(mode)} · ${attack ? "Saldırı başarılı" : "Korundu / tamamlandı"}</span>
+      </div>
+      ${timelineTemplate(events)}
+    `;
+  } catch (error) {
+    elements.auditDetail.innerHTML = `<p class="audit-empty">${escapeHtml(friendlyApiError(error))}</p>`;
+  }
 }
 
 function formatAuditTime(value) {
