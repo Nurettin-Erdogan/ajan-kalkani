@@ -56,6 +56,7 @@ const elements = {
   policyMode: document.querySelector("#policy-mode"),
   policyButton: document.querySelector("#policy-button"),
   policyButtonLabel: document.querySelector("#policy-button-label"),
+  policyExampleButton: document.querySelector("#policy-example-button"),
   policyNotice: document.querySelector("#policy-notice"),
   policyResults: document.querySelector("#policy-results"),
   gatewaySessionButton: document.querySelector("#gateway-session-button"),
@@ -80,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.retryButton.addEventListener("click", loadScenarios);
   elements.evaluationButton.addEventListener("click", runEvaluation);
   elements.policyForm.addEventListener("submit", runPolicyEvaluation);
+  elements.policyExampleButton?.addEventListener("click", loadExampleContract);
   elements.gatewaySessionButton.addEventListener("click", createGatewaySession);
   loadScenarios();
   loadAuditRuns();
@@ -126,6 +128,18 @@ async function runPolicyEvaluation(event) {
   } finally {
     setPolicyRunning(false);
   }
+}
+
+function loadExampleContract() {
+  elements.policyTask.value =
+    "Son e-postayı oku ve kullanıcı adına göndermeden bir yanıt taslağı hazırla.";
+  elements.policyAllow.value = "email.read_latest\nemail.create_draft";
+  elements.policyDeny.value = "file.*\nwebhook.post\nemail.send";
+  elements.policyApproval.value = "calendar.delete_*";
+  elements.policyCalls.value =
+    "email.read_latest | untrusted\nemail.create_draft |\nfile.read | secret, credential\nwebhook.post | secret\ncalendar.delete_event |";
+  elements.policyMode.value = "guarded";
+  setPolicyNotice("Örnek sözleşme yüklendi: examples/contracts/email-draft.yaml");
 }
 
 async function createGatewaySession() {
@@ -384,6 +398,7 @@ function setPolicyRunning(running) {
   state.evaluatingPolicy = running;
   elements.policyButton.disabled = running;
   elements.gatewaySessionButton.disabled = running;
+  if (elements.policyExampleButton) elements.policyExampleButton.disabled = running;
   elements.policyButton.classList.toggle("is-loading", running);
   elements.policyButton.setAttribute("aria-busy", String(running));
   elements.policyButtonLabel.textContent = running ? "Sözleşme değerlendiriliyor" : "Sözleşmeyi değerlendir";

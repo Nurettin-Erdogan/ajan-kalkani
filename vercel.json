@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "builds": [{ "src": "app.py", "use": "@vercel/python" }],
+  "routes": [{ "src": "/(.*)", "dest": "app.py" }],
+  "env": {
+    "AJAN_KALKANI_PUBLIC_DEMO": "1"
+  }
+}

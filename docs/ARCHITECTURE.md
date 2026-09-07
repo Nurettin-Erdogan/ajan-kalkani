@@ -236,7 +236,7 @@ Sunucunun kanonik, makine tarafından okunabilir şeması `/openapi.json` altın
 Yanıt (`200`):
 
 ```json
-{"status": "ok", "version": "0.3.0"}
+{"status": "ok", "version": "1.0.0"}
 ```
 
 ### `GET /api/scenarios`
