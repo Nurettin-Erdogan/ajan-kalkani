@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import time
+from collections import defaultdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 
@@ -24,6 +26,31 @@ app = FastAPI(
     version=__version__,
     description="AI ajanları için görev sözleşmeli güvenlik geçidi ve saldırı sandbox'ı.",
 )
+
+
+# Public demo abuse guard: soft per-IP limit for mutating API calls.
+_WRITE_RATE_LIMIT = 60
+_WRITE_RATE_WINDOW_SECONDS = 60
+_write_buckets: dict[str, list[float]] = defaultdict(list)
+
+
+@app.middleware("http")
+async def demo_write_rate_limit(request: Request, call_next) -> Response:
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path.startswith("/api/"):
+        client = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+        window_start = now - _WRITE_RATE_WINDOW_SECONDS
+        bucket = [stamp for stamp in _write_buckets[client] if stamp >= window_start]
+        if len(bucket) >= _WRITE_RATE_LIMIT:
+            _write_buckets[client] = bucket
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Çok fazla istek. Bir dakika sonra yeniden dene."},
+                headers={"Retry-After": "60"},
+            )
+        bucket.append(now)
+        _write_buckets[client] = bucket
+    return await call_next(request)
 
 
 @app.middleware("http")

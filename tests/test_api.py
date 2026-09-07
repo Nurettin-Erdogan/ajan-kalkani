@@ -263,3 +263,20 @@ def test_runtime_gateway_missing_session_and_limits() -> None:
     assert missing.status_code == 404
     assert decisions.status_code == 404
     assert invalid_limit.status_code == 422
+
+
+def test_write_rate_limit_returns_429(monkeypatch):
+    from collections import defaultdict
+
+    import ajan_kalkani.api as api_module
+
+    monkeypatch.setattr(api_module, "_WRITE_RATE_LIMIT", 3)
+    monkeypatch.setattr(api_module, "_write_buckets", defaultdict(list))
+
+    payload = {"scenario_id": "email_prompt_injection", "mode": "guarded"}
+    assert client.post("/api/runs", json=payload).status_code == 200
+    assert client.post("/api/runs", json=payload).status_code == 200
+    assert client.post("/api/runs", json=payload).status_code == 200
+    limited = client.post("/api/runs", json=payload)
+    assert limited.status_code == 429
+    assert limited.json()["detail"].startswith("Çok fazla istek")

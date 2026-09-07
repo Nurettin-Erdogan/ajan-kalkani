@@ -49,7 +49,7 @@ The repository includes automated tests and an evaluation pipeline that tracks g
 
 ## Live sandbox
 
-The public deployment is a **synthetic sandbox demo**. It does not use real email accounts, files, calendars, payment services or external webhooks.
+The public deployment is a **synthetic sandbox demo**. It does not use real email accounts, files, calendars, payment services or external webhooks. Mutating `/api/*` endpoints are soft rate-limited per IP to reduce abuse on the open demo.
 
 Live demo: https://ajan-kalkani.vercel.app/
 
