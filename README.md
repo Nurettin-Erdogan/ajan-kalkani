@@ -10,10 +10,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/lisans-MIT-0f766e.svg" alt="MIT Lisansı"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-0f766e.svg" alt="Python 3.11–3.13">
   <img src="https://img.shields.io/badge/sürüm-1.0.0-0f766e.svg" alt="Sürüm 1.0.0">
-  <img src="https://img.shields.io/badge/test-58-0f766e.svg" alt="58 otomatik test">
 </p>
 
-**AI ajanlarının araç yetkilerini, operatörün önceden tanımladığı capability sözleşmesiyle sınırlayan çalışma zamanı güvenlik geçidi ve test ortamı.**
+**Bir ajan yanlış karar verdiğinde, hangi işlemleri gerçekten yapabilmeli?**
+
+Ajan Kalkanı, yapay zekâ ajanlarının araç çağrılarını önceden tanımlanan yetki kurallarıyla denetleyen bir güvenlik geçidi ve karşılaştırmalı deney ortamıdır. Canlı demo gerçek model ve hesaplar yerine deterministik senaryolar ve sahte araçlar kullanır.
 
 <p align="center">
   <a href="https://ajan-kalkani.vercel.app"><strong>Canlı demoyu aç →</strong></a>
@@ -34,6 +35,16 @@
 </p>
 <p align="center"><sub>Gerçek deterministik sandbox koşusu: aynı saldırı, korumasız ve Ajan Kalkanı modlarında yan yana.</sub></p>
 
+## Bir dakikada dene
+
+1. [Canlı uygulamayı aç](https://ajan-kalkani.vercel.app) ve bir prompt injection senaryosu seç.
+2. Aynı senaryonun korumasız ve korumalı sonuçlarını karşılaştır.
+3. `file.read` ve `webhook.post` gibi çağrıların hangi kural nedeniyle reddedildiğini karar izinde incele.
+
+**Teknik odak:** Modelin ne söyleyeceğini kontrol etmek yerine, araç çağrısının çalışıp çalışamayacağına yürütme öncesinde karar vermek. [Politika motoru](src/ajan_kalkani/policy.py) · [Gateway](src/ajan_kalkani/gateway.py) · [Tehdit modeli](docs/THREAT_MODEL.md)
+
+**Sınır:** Demo, prompt injection'ın çözüldüğünü veya gerçek bir LLM'in güvenli olduğunu kanıtlamaz. Görev metninden otomatik yetki çıkarmaz; koruma, yazılan kurallara ve araçların geçitten geçirilmesine bağlıdır.
+
 ## Özet
 
 | | |
@@ -41,7 +52,7 @@
 | **Problem** | Prompt injection alan bir AI ajanının dosya, e-posta veya webhook araçlarında gerçek yan etki oluşturabilmesi |
 | **Çözüm** | Her araç çağrısını çalışmadan önce capability sözleşmesine göre değerlendiren, varsayılan-ret çalışma zamanı geçidi |
 | **Kararlar** | Korumasız/korumalı aynı senaryo karşılaştırması, açıklanabilir karar izi ve eşzamanlı yazımlarda da doğrulanabilen SQLite hash zinciri |
-| **Doğrulama** | 58 otomatik test, 3 Python sürümü, deterministik saldırı senaryoları ve güvenlik regresyonunda CI'ı durduran kalite kapısı |
+| **Doğrulama** | Deterministik saldırı senaryoları, otomatik testler ve güvenlik regresyonunda CI'ı durduran kontroller |
 
 Ajan Kalkanı, AI güvenliğini prompt yasağına bırakmaz. Yürütme katmanında en az yetki, varsayılan-ret ve test edilebilir politika uygular.
 
