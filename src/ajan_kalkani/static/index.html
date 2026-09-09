@@ -44,9 +44,16 @@
           </span>
           <span>
             <strong>Ajan Kalkanı</strong>
-            <small>Ajan güvenlik laboratuvarı</small>
+            <small>Runtime güvenlik laboratuvarı</small>
           </span>
         </a>
+
+        <nav class="section-nav" aria-label="Sayfa bölümleri">
+          <a href="#experiment">Karşılaştır</a>
+          <a href="#policy">Politika</a>
+          <a href="#evaluation">Değerlendirme</a>
+          <a href="#audit">Kayıtlar</a>
+        </nav>
 
         <div class="header-meta">
           <span class="environment-badge">
@@ -62,16 +69,16 @@
     </header>
 
     <main id="main-content" class="shell main-content">
-      <section class="hero" aria-labelledby="hero-title">
+      <section class="hero panel" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">AI AJAN GÜVENLİĞİ</p>
-          <h1 id="hero-title">Aynı görevi çalıştır.<br /><span>Farkı kanıtla.</span></h1>
+          <p class="eyebrow">AI AJAN RUNTIME GÜVENLİĞİ</p>
+          <h1 id="hero-title">Ajanın sınırlarını<br /><span>çalışırken denetle.</span></h1>
           <p class="hero-description">
-            Bir saldırı senaryosunu korumasız ajan ve Ajan Kalkanı ile yan yana çalıştırın.
-            Hangi araç çağrısının neden yürütüldüğünü veya engellendiğini izleyin.
+            Aynı saldırı senaryosunu korumasız ve politika korumalı çalıştırın.
+            Her araç çağrısının neden geçtiğini veya durduğunu kanıt iziyle görün.
           </p>
           <p class="hero-note">
-            Sentetik sandbox: gerçek e-posta, dosya veya webhook yok. Canlı demoda yazma API’leri IP başına rate limitlidir; Swagger yalnızca yerel kurulumda açılır.
+            İzole sandbox · Gerçek hesap yok · Dış sisteme yan etki yok
           </p>
         </div>
 
@@ -79,32 +86,32 @@
           <div class="principle">
             <span class="principle-index">01</span>
             <div>
-              <strong>Görev sözleşmesi</strong>
-              <span>Her ajan için açık yetki sınırı</span>
+              <strong>Niyeti sınırla</strong>
+              <span>Her görev için açık yetki sözleşmesi</span>
             </div>
           </div>
           <div class="principle">
             <span class="principle-index">02</span>
             <div>
-              <strong>Araç denetimi</strong>
-              <span>Çalıştırmadan önce politika kontrolü</span>
+              <strong>Çağrıyı denetle</strong>
+              <span>Araç çalışmadan önce politika kararı</span>
             </div>
           </div>
           <div class="principle">
             <span class="principle-index">03</span>
             <div>
-              <strong>Kanıt izi</strong>
-              <span>Kararların adım adım kaydı</span>
+              <strong>Kararı kanıtla</strong>
+              <span>Redakte edilmiş adım adım olay izi</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="control-panel panel" aria-labelledby="experiment-title">
+      <section id="experiment" class="control-panel panel" aria-labelledby="experiment-title">
         <div class="panel-heading">
           <div>
             <p class="section-kicker">YENİ DENEY</p>
-            <h2 id="experiment-title">Saldırı senaryosunu seçin</h2>
+            <h2 id="experiment-title">Bir senaryo seç, iki sonucu karşılaştır</h2>
           </div>
           <span class="parallel-note">
             <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
@@ -156,7 +163,7 @@
         <div id="notice" class="notice" role="alert" hidden></div>
       </section>
 
-      <section class="policy-lab panel" aria-labelledby="policy-lab-title">
+      <section id="policy" class="policy-lab panel" aria-labelledby="policy-lab-title">
         <div class="policy-lab-header">
           <div>
             <p class="section-kicker">POLİTİKA LABORATUVARI</p>
@@ -242,7 +249,7 @@ webhook.post | secret</textarea>
         <div id="policy-results" class="policy-results" aria-live="polite" hidden></div>
       </section>
 
-      <section class="evaluation-panel panel" aria-labelledby="evaluation-title">
+      <section id="evaluation" class="evaluation-panel panel" aria-labelledby="evaluation-title">
         <div class="evaluation-header">
           <div class="evaluation-copy">
             <p class="section-kicker">AGENT CI</p>
@@ -307,7 +314,7 @@ webhook.post | secret</textarea>
         <div id="evaluation-failures" class="evaluation-failures" role="alert" hidden></div>
       </section>
 
-      <section class="audit-panel panel" aria-labelledby="audit-title">
+      <section id="audit" class="audit-panel panel" aria-labelledby="audit-title">
         <div class="audit-heading">
           <div>
             <p class="section-kicker">YEREL DENETİM KAYDI</p>
@@ -323,7 +330,7 @@ webhook.post | secret</textarea>
         <div id="audit-detail" class="audit-detail" aria-live="polite" hidden></div>
       </section>
 
-      <section class="results-section" aria-labelledby="results-title">
+      <section id="results" class="results-section" aria-labelledby="results-title">
         <div class="results-heading">
           <div>
             <p class="section-kicker">KARŞILAŞTIRMA</p>
