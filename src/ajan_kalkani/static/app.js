@@ -260,24 +260,43 @@ function renderGatewayDecisions(sessionId, decisions) {
       ${decisions
         .map((record, index) => {
           const decision = record.decision && typeof record.decision === "object" ? record.decision : {};
+          const approval = record.approval && typeof record.approval === "object" ? record.approval : null;
           const allowed = decision.allowed === true;
+          const awaitingApproval = !allowed && decision.requires_approval === true;
           const tool = record.tool || decision.tool || `çağrı ${index + 1}`;
           const reason =
             decision.reason ||
             decision.rule_id ||
             decision.detail ||
             (allowed ? "İzin verildi" : "Engellendi");
+          const stateClass = allowed ? "is-allowed" : awaitingApproval ? "is-pending" : "is-denied";
+          const stateLabel = allowed ? "İZİN" : awaitingApproval ? "ONAY BEKLİYOR" : "ENGEL";
+          const approvalNote = approval
+            ? `<p>Onay isteği <code>${escapeHtml(String(approval.id || "").slice(0, 8))}…</code> · ${escapeHtml(approvalStatusLabel(approval.status))} · son geçerlilik ${escapeHtml(formatAuditTime(approval.expires_at))}. Onay; ajandan ayrı, kimliği doğrulanmış bir onaylayıcı tarafından verilir ve yalnızca bu çağrının birebir parametreleri için bir kez geçerlidir.</p>`
+            : "";
           return `
-            <article class="gateway-decision ${allowed ? "is-allowed" : "is-denied"}">
+            <article class="gateway-decision ${stateClass}">
               <strong>${escapeHtml(String(tool))}</strong>
-              <span>${allowed ? "İZİN" : "ENGEL"}</span>
+              <span>${stateLabel}</span>
               <p>${escapeHtml(String(reason))}</p>
+              ${approvalNote}
             </article>
           `;
         })
         .join("")}
     </div>
   `;
+}
+
+function approvalStatusLabel(status) {
+  const labels = {
+    pending: "onaylayıcı kararı bekleniyor",
+    approved: "onaylandı, henüz kullanılmadı",
+    rejected: "reddedildi",
+    expired: "süresi doldu",
+    consumed: "kullanıldı",
+  };
+  return labels[status] || "durum bilinmiyor";
 }
 
 function parseRuleList(value) {
@@ -966,6 +985,9 @@ function resultTemplate(result, mode, scenario) {
         value: attackSucceeded ? "Başarılı" : "Engellendi",
         tone: attackSucceeded ? "is-negative" : "is-positive",
       };
+  // İki mod yan yana çizildiği için bölge adları moda göre ayrışmalı; aksi
+  // hâlde ekran okuyucu kullanıcısı iki "Görev sözleşmesi" bölgesini ayıramaz.
+  const modeName = mode === "guarded" ? "korumalı mod" : "korumasız mod";
 
   return `
     <div class="outcome-banner ${outcomeClass}">
@@ -986,7 +1008,7 @@ function resultTemplate(result, mode, scenario) {
       ${metricTemplate("Çalıştırılan", String(executedCount), "")}
     </div>
 
-    <section class="result-section" aria-label="Görev sözleşmesi">
+    <section class="result-section" aria-label="Görev sözleşmesi, ${modeName}">
       <div class="result-section-heading">
         <h4>Görev sözleşmesi</h4>
         <span>${mode === "guarded" ? "ENFORCED" : "BYPASSED"}</span>
@@ -994,7 +1016,7 @@ function resultTemplate(result, mode, scenario) {
       ${contractTemplate(result.contract, mode)}
     </section>
 
-    <section class="result-section" aria-label="Olay zaman çizelgesi">
+    <section class="result-section" aria-label="Olay zaman çizelgesi, ${modeName}">
       <div class="result-section-heading">
         <h4>Olay zaman çizelgesi</h4>
         <span>${events.length} OLAY</span>

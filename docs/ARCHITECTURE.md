@@ -106,6 +106,10 @@ Katalogdaki her senaryoyu iki modda çalıştırır, tekil `RunResult` nesneleri
 
 Runtime gateway, bir ajan koşusunu oluşturma anındaki `IntentContract` nesnesine bağlar. Contract kanonik JSON'a çevrilip SHA-256 ile özetlenir; oturum için güncelleme endpoint'i bulunmaz. Her yetkilendirme isteği `guarded` modda aynı `PolicyEngine` üzerinden geçer. Karar tablosu oturum içinde artan `sequence`, araç adı, kaynak, veri etiketleri, bütün `ToolCall` nesnesinin kanonik SHA-256 `request_hash` değeri ve `PolicyDecision` saklar; ham `arguments` saklanmaz. Oturum süresi 1–1440 dakika olabilir ve süre dolduktan sonra yetkilendirme endpoint'i `410 Gone` döndürür.
 
+### İnsan onayı
+
+`approval_required` kararı bir `gateway_approvals` kaydı açar. Kayıt oturuma, çağrının kanonik SHA-256 özetine (`call_fingerprint`: anahtarları sıralı JSON ve sıralı `data_labels`) ve en fazla 10 dakikalık, oturum süresini aşmayan bir geçerlilik süresine bağlıdır. Aynı çağrı yeniden sorulduğunda açık istek tekrar döndürülür (idempotent). Onaylayıcı, ajandan ayrı `AJAN_KALKANI_APPROVER_TOKEN` jetonuyla karar verir; jeton yoksa veya 32 karakterden kısaysa uçlar `503` ile kapalı başarısız olur. Ajan çağrıyı `approval_id` ile yeniden gönderdiğinde `evaluate_presented_approval()` sırasıyla oturumu, onaylayıcı kararını, süreyi, parametre özetini ve tek kullanımı denetler; geçerli onay `BEGIN IMMEDIATE` işlemi içinde koşullu `UPDATE ... WHERE consumed_at IS NULL` ile tüketilir. Onay yalnızca politikanın `requires_approval` dediği çağrıyı açabilir; açık ret, hassas veri çıkışı ve varsayılan ret onayla ezilemez. Senaryo laboratuvarı aynı fonksiyonu simüle onaylayıcıyla kullanır.
+
 ### Yerel denetim deposu
 
 `POST /api/runs` ve `POST /api/evaluations` sonuçları, API'ye dönmeden önce zaten redakte edilmiş modellerden SQLite'a yazılır. Aynı türdeki her yeni kayıt önceki kaydın SHA-256 özetiyle bağlanır; zincir başı ve kayıt sayısı ayrı metadata'da saklanır. `/api/audit/integrity` değiştirilen veya çıkarılan kayıtlara ait izi doğrular. Varsayılan yol `data/ajan-kalkani-audit.sqlite3`, Docker içindeki yol `/data/ajan-kalkani-audit.sqlite3`'tür. `AJAN_KALKANI_AUDIT_DB` ile yol değiştirilebilir. Depo yalnızca yerel geliştirme/demoya yöneliktir; şifreleme, tenant ayrımı, saklama politikası, harici imza veya merkezi toplama sağlamaz.
@@ -345,7 +349,29 @@ Yanıt, ilk çağrı için `contract.allow`, ikinci çağrı için `dataflow.sen
 - `GET /api/gateway/sessions`: Oturumları süre ve karar sayısıyla listeler.
 - `GET /api/gateway/sessions/{session_id}`: Contract, contract hash'i ve oturum metadata'sını döndürür.
 - `POST /api/gateway/sessions/{session_id}/authorize`: Tek `ToolCall` için karar üretir ve redakte metadata'yı sıralı kaydeder.
-- `GET /api/gateway/sessions/{session_id}/decisions`: En yeni karar önce olacak şekilde geçmişi döndürür.
+- `GET /api/gateway/sessions/{session_id}/decisions`: En yeni karar önce olacak şekilde geçmişi ve bağlı onayın güncel durumunu döndürür.
+- `GET /api/gateway/approvals?status=pending`: Onaylayıcı kuyruğu (`pending`, `approved`, `rejected`, `expired`, `consumed`, `all`); onaylayıcı jetonu gerekir.
+- `GET /api/gateway/approvals/{approval_id}`: Ajanın kendi onay isteğinin durumunu sorgulaması için.
+- `POST /api/gateway/approvals/{approval_id}/decision`: `{"approved": true|false, "note": "..."}`; onaylayıcı jetonu gerekir. Bilinmeyen onay `404`, daha önce karara bağlanmış onay `409`, süresi dolmuş onay `410` döndürür.
+
+Onay gerektiren bir çağrının yanıtı:
+
+```json
+{
+  "sequence": 1,
+  "tool": "email.send",
+  "request_hash": "97dee16a57f1…",
+  "decision": {
+    "allowed": false,
+    "requires_approval": true,
+    "rule_id": "contract.human-approval",
+    "risk": "high"
+  },
+  "approval": {"id": "4cdd8f89-…", "status": "pending", "expires_at": "2026-11-17T18:19:00+00:00"}
+}
+```
+
+Ajan aynı çağrıyı `{"call": …, "approval_id": "4cdd8f89-…"}` ile tekrar gönderir. Olası kurallar: `approval.granted`, `approval.pending`, `approval.rejected`, `approval.expired`, `approval.parameters-mismatch`, `approval.replayed`, `approval.session-mismatch`, `approval.not-found`.
 
 Runtime gateway gerçek aracı kendi başına çağırmaz. Entegrasyon adaptörü, aracı yalnızca `decision.allowed == true` sonucundan sonra çalıştırmak ve gateway dışındaki doğrudan credential/ağ yolunu kapatmak zorundadır.
 
@@ -366,13 +392,13 @@ Gövdesiz istek bütün katalog için `EvaluationReport` üretir. Aşağıdaki �
     "max_safe_false_block_rate": 0.0
   },
   "metrics": {
-    "scenario_count": 5,
-    "attack_scenario_count": 3,
+    "scenario_count": 7,
+    "attack_scenario_count": 5,
     "baseline_attack_success_rate": 1.0,
     "guarded_attack_success_rate": 0.0,
     "guarded_task_success_rate": 1.0,
     "safe_false_block_rate": 0.0,
-    "total_guarded_blocks": 4
+    "total_guarded_blocks": 6
   },
   "comparisons": [
     {
@@ -450,6 +476,8 @@ GitHub Actions:
 9. `unprotected` modu gerçek yan etkili adaptörlerle kullanıma hazır değildir.
 10. Runtime gateway karar kayıtları ham araç argümanlarını saklamaz; çağrıyı `request_hash` ile karara bağlar.
 11. Süresi dolan gateway oturumu yeni araç çağrısı yetkilendiremez.
+12. Bir onay yalnızca verildiği oturumda, birebir aynı çağrı özeti için, süresi içinde ve bir kez kullanılabilir; hiçbir ret kuralını ezemez.
+13. Onay uçları onaylayıcı jetonu olmadan çalışmaz; jeton yapılandırılmamışsa sistem onay vermez.
 
 ## 10. Hedef entegrasyon mimarisi
 
@@ -457,7 +485,7 @@ GitHub Actions:
 - **MCP proxy:** fake tools yerine gerçek araç keşfi ve aracılık;
 - **Contract loader:** sürümlü, sahipli, doğrulanan ve hash'lenen harici policy;
 - **Parametre politikası:** URL, alıcı, dosya yolu, kaynak ve veri akışı kapsamı;
-- **Approval service:** `RunResult.id`, capability ve parametre özetine bağlı tek kullanımlı onay;
+- **Approval service:** mevcut parametreye bağlı tek kullanımlı onayın OIDC kimliği, çoklu onaylayıcı ve dört göz kuralıyla genişletilmesi;
 - **Redaction service:** şema ve veri etiketi tabanlı merkezi redaksiyon;
 - **Telemetry adapter:** redakte OpenTelemetry span ve metric'leri;
 - **Evaluation corpus:** gerçek model ve araçlarla çeşitlendirilmiş normal/saldırı senaryoları.
