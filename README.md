@@ -9,7 +9,7 @@
   <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/codeql.yml"><img src="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL güvenlik analizi"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/lisans-MIT-0f766e.svg" alt="MIT Lisansı"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-0f766e.svg" alt="Python 3.11–3.13">
-  <img src="https://img.shields.io/badge/sürüm-1.0.0-0f766e.svg" alt="Sürüm 1.0.0">
+  <img src="https://img.shields.io/badge/sürüm-1.1.0-0f766e.svg" alt="Sürüm 1.1.0">
 </p>
 
 **Bir ajan yanlış karar verdiğinde, hangi işlemleri gerçekten yapabilmeli?**
@@ -40,6 +40,7 @@ Ajan Kalkanı, yapay zekâ ajanlarının araç çağrılarını önceden tanıml
 1. [Canlı uygulamayı aç](https://ajan-kalkani.vercel.app) ve bir prompt injection senaryosu seç.
 2. Aynı senaryonun korumasız ve korumalı sonuçlarını karşılaştır.
 3. `file.read` ve `webhook.post` gibi çağrıların hangi kural nedeniyle reddedildiğini karar izinde incele.
+4. **Onaylı e-postada alıcı değiştirme** senaryosunu seç: kullanıcı yalnızca Ayşe'ye gidecek e-postayı onaylar; ajan aynı onayla saldırgana göndermeye çalıştığında onay geçersiz sayılır. Onay bir eyleme bağlıdır, boş çek değildir.
 
 **Teknik odak:** Modelin ne söyleyeceğini kontrol etmek yerine, araç çağrısının çalışıp çalışamayacağına yürütme öncesinde karar vermek. [Politika motoru](src/ajan_kalkani/policy.py) · [Gateway](src/ajan_kalkani/gateway.py) · [Tehdit modeli](docs/THREAT_MODEL.md)
 
@@ -52,6 +53,7 @@ Ajan Kalkanı, yapay zekâ ajanlarının araç çağrılarını önceden tanıml
 | **Problem** | Prompt injection alan bir AI ajanının dosya, e-posta veya webhook araçlarında gerçek yan etki oluşturabilmesi |
 | **Çözüm** | Her araç çağrısını çalışmadan önce capability sözleşmesine göre değerlendiren, varsayılan-ret çalışma zamanı geçidi |
 | **Kararlar** | Korumasız/korumalı aynı senaryo karşılaştırması, açıklanabilir karar izi ve eşzamanlı yazımlarda da doğrulanabilen SQLite hash zinciri |
+| **İnsan onayı** | Çağrının kanonik SHA-256 özetine bağlı, süreli, tek kullanımlık ve ajandan ayrı bir onaylayıcı jetonuyla verilen onay |
 | **Doğrulama** | Deterministik saldırı senaryoları, otomatik testler ve güvenlik regresyonunda CI'ı durduran kontroller |
 
 Ajan Kalkanı, AI güvenliğini prompt yasağına bırakmaz. Yürütme katmanında en az yetki, varsayılan-ret ve test edilebilir politika uygular.
@@ -105,7 +107,10 @@ Swagger / ReDoc yalnızca yerel veya Docker kurulumunda açılır.
 - Çakışmalarda `deny` kuralını önceliklendiren politika değerlendirmesi
 - Hassas etiketli verinin harici hedeflere çıkışını izin listesinden bağımsız engelleyen kural
 - Sözleşmede bulunmayan yetkiler için varsayılan-ret davranışı
-- `email`, `file`, `webhook` ve `calendar` için deterministik sahte araçlar
+- `email`, `file`, `webhook`, `calendar` ve `payment` için deterministik sahte araçlar
+- **Parametreye bağlı insan onayı:** onay, çağrının kanonik SHA-256 özetine, oturuma ve süreye bağlanır; alıcı veya tutar değişirse (`approval.parameters-mismatch`) ya da onay ikinci kez sunulursa (`approval.replayed`) çağrı reddedilir
+- Ajandan ayrı onaylayıcı kimliği: onay uçları `AJAN_KALKANI_APPROVER_TOKEN` olmadan kapalı başarısız olur; jeton sabit zamanlı karşılaştırılır
+- Onayın hiçbir zaman `deny`, hassas veri çıkışı veya varsayılan-ret kuralını ezememesi; paralel isteklerin aynı onayı iki kez harcayamaması
 - Aynı senaryoda `unprotected` / `guarded` karşılaştırması
 - Açıklanabilir karar ve olay izi
 - Bilinen hassas anahtar adlarını ve demo anahtarı biçimlerini izlerde maskeleyen MVP redaksiyonu
@@ -129,7 +134,9 @@ flowchart LR
     A --> G
     G --> P["Politika motoru"]
     P -->|allow| T["Sahte araçlar"]
-    P -->|deny / approval required| B["Eylemi durdur"]
+    P -->|deny| B["Eylemi durdur"]
+    P -->|approval required| H["İnsan onaylayıcı<br/>ayrı jeton"]
+    H -->|"parametreye bağlı, tek kullanımlık onay"| G
     T --> S["Sandbox durumu"]
     P --> R["Redakte edilmiş trace"]
     T --> R
@@ -166,6 +173,15 @@ docker compose up --build
 
 Compose portu güvenli yerel demo varsayımıyla yalnızca `127.0.0.1:8000` adresine yayınlanır. Uygulamayı başka bir ağa açmadan önce kimlik doğrulama, yetkilendirme ve rate limit eklenmelidir.
 
+İnsan onayı uçlarını kullanmak için onaylayıcı jetonunu tanımlayın. Jeton ajanın ortamına **verilmemelidir**; aksi hâlde ajan kendi isteğini onaylayabilir:
+
+```powershell
+$env:AJAN_KALKANI_APPROVER_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+$env:AJAN_KALKANI_APPROVER_NAME = "Ayşe (güvenlik)"
+```
+
+Jeton tanımlı değilse veya 32 karakterden kısaysa onay uçları `503` döndürür: varsayılan durum "kimse onaylayamaz"dır.
+
 ### Vercel canlı demo dağıtımı
 
 Canlı vitrin: [https://ajan-kalkani.vercel.app](https://ajan-kalkani.vercel.app)
@@ -185,7 +201,9 @@ python -m ajan_kalkani --host 127.0.0.1 --port 8080
 
 ## Testler
 
-Toplam 58 test; politika kararlarını, API davranışını, denetim zincirini, kalıcı gateway oturumlarını, paketlemeyi ve Vercel giriş noktasını doğrular. CI aynı paketi Python 3.11, 3.12 ve 3.13 üzerinde çalıştırır.
+Toplam 89 test; politika kararlarını, API davranışını, denetim zincirini, kalıcı gateway oturumlarını, insan onayı akışını, paketlemeyi ve Vercel giriş noktasını doğrular. CI aynı paketi Python 3.11, 3.12 ve 3.13 üzerinde çalıştırır.
+
+Onay testleri özellikle şunları kanıtlar: farklı `PYTHONHASHSEED` değerleriyle başlatılan süreçler aynı çağrı için aynı özeti üretir; dört paralel istek aynı onayı yalnızca bir kez harcayabilir; onay başka oturuma taşınamaz ve hiçbir ret kuralını ezemez.
 
 ```powershell
 pytest
@@ -228,6 +246,9 @@ Bu bölüm projenin portföy değerini de güçlendirir: yalnızca bir güvenlik
 | `GET` | `/api/gateway/sessions/{session_id}` | Oturum sözleşmesi, hash'i, süresi ve karar sayısı |
 | `POST` | `/api/gateway/sessions/{session_id}/authorize` | Bir araç çağrısını sabit oturum sözleşmesine göre yetkilendirme |
 | `GET` | `/api/gateway/sessions/{session_id}/decisions` | Oturumun redakte ve sıralı karar geçmişi |
+| `GET` | `/api/gateway/approvals` | Onaylayıcı kuyruğu; redakte argüman önizlemeleriyle (onaylayıcı jetonu gerekir) |
+| `GET` | `/api/gateway/approvals/{approval_id}` | Ajanın kendi onay isteğinin durumu |
+| `POST` | `/api/gateway/approvals/{approval_id}/decision` | Onay isteğini onaylama veya reddetme (onaylayıcı jetonu gerekir) |
 | `POST` | `/api/runs` | Bir senaryoyu `unprotected` veya `guarded` modda çalıştırma |
 | `POST` | `/api/evaluations` | Bütün senaryolar için Ajan Kalkanı CI raporu üretme |
 | `GET` | `/api/audit/runs` | Son redakte edilmiş koşu özetleri |
@@ -276,21 +297,34 @@ Politika laboratuvarındaki **Gateway oturumu oluştur** düğmesi, mevcut sözl
 
 Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#7-http-api-sözleşmesi) içindedir.
 
+### İnsan onayı akışı
+
+`approval_required` kapsamındaki bir çağrı artık bir onay isteği açar. Onay "bu ajan e-posta gönderebilir" değil, "bu ajan, bu oturumda, bu alıcıya, bu içerikle, on dakika içinde, bir kez e-posta gönderebilir" anlamına gelir:
+
+1. Ajan çağrıyı yetkilendirmeye gönderir; yanıt `decision.requires_approval: true` ve `approval.status: "pending"` içerir. Aynı çağrı tekrar sorulursa yeni istek açılmaz, mevcut olan döner.
+2. Onaylayıcı `GET /api/gateway/approvals` ile kuyruğu görür ve `POST /api/gateway/approvals/{id}/decision` ile karar verir. Her iki uç da ajandan ayrı `Authorization: Bearer <AJAN_KALKANI_APPROVER_TOKEN>` ister.
+3. Ajan aynı çağrıyı `approval_id` ile tekrar gönderir. Gateway onayı tek yazıcı kilidi altında doğrular ve tüketir; karar `approval.granted` olur.
+4. Değiştirilmiş parametre (`approval.parameters-mismatch`), ikinci kullanım (`approval.replayed`), süresi dolmuş onay (`approval.expired`), başka oturumun onayı (`approval.session-mismatch`) veya reddedilmiş onay (`approval.rejected`) çağrıyı çalıştırmaz.
+
+Onay, çağrının kanonik SHA-256 özetine bağlanır: anahtarları sıralı, `,`/`:` ayırıcılı, `ensure_ascii=False` JSON ve **sıralı** `data_labels` listesi. Etiketler bir kümedir ve Python'da kümelerin dolaşım sırası süreçten sürece değişebilir; bu yüzden etiket sıralaması kanonik biçimin parçasıdır. Onaylayıcı redakte bir argüman önizlemesi görür; onay ise ham argümanların özetine bağlıdır. Karar kayıtları argüman saklamamaya devam eder. Uçtan uca örnek: [examples/approval_flow.py](examples/approval_flow.py).
+
 ## Proje yapısı
 
 ```text
 .
 ├── src/ajan_kalkani/
 │   ├── __main__.py          # Sunucu komut satırı girişi
-│   ├── api.py               # FastAPI ve statik dashboard sunumu
+│   ├── api.py               # FastAPI, onaylayıcı kimlik doğrulaması ve dashboard sunumu
+│   ├── approvals.py         # Parametreye bağlı, süreli, tek kullanımlık onay kararı
 │   ├── evaluation.py        # Toplu senaryo değerlendirmesi ve kalite kapısı
 │   ├── gateway.py           # Kalıcı runtime oturumları ve araç yetkilendirme kaydı
 │   ├── laboratory.py        # Özel sözleşme analizi ve toplu politika değerlendirmesi
 │   ├── models.py            # Sözleşme, trace ve API modelleri
 │   ├── policy.py            # Intent-contract politika kararları
+│   ├── redaction.py         # Olay izi ve onay önizlemesi redaksiyonu
 │   ├── scenarios.py         # Deterministik saldırı senaryoları
-│   ├── service.py           # Koşu orkestrasyonu
-│   ├── sandbox.py           # Sahte email/file/webhook/calendar araçları
+│   ├── service.py           # Koşu orkestrasyonu ve simüle onaylayıcı
+│   ├── sandbox.py           # Sahte email/file/webhook/calendar/payment araçları
 │   └── static/              # Dashboard HTML, CSS ve JavaScript
 ├── examples/                    # Örnek sözleşme ve runtime gateway istemcisi
 ├── docs/                       # Mimari ve tehdit modeli
@@ -307,13 +341,13 @@ Ayrıntılı istek ve yanıt sözleşmesi [docs/ARCHITECTURE.md](docs/ARCHITECTU
 Bu sürüm bilinçli olarak dar tutulmuştur:
 
 - Gerçek bir LLM yerine tekrarlanabilir, deterministik ajan davranışı kullanır.
-- MCP sunucuları yerine dört sahte araç kullanır.
+- MCP sunucuları yerine beş sahte araç ailesi kullanır.
 - Tüm veriler sentetiktir ve sandbox içindedir.
 - Politika, senaryo kataloğunda operatörce tanımlanan capability listelerine uygulanır; `task` metni yetki üretmez.
 - Örnek YAML otomatik yüklenmez; harici contract loader veya policy yönetim API'si yoktur.
 - Organizasyon çapında kimlik/RBAC yoktur.
 - Gateway oturumlarını oluşturmak veya okumak için kimlik doğrulama yoktur; servis yalnızca güvenilen yerel ağda kullanılmalıdır.
-- `approval_required` bir politika sonucudur; gerçek kimlik doğrulamalı onay iş akışı sonraki aşamadır.
+- İnsan onayı tek bir statik onaylayıcı jetonuyla doğrulanır; kurumsal kimlik sağlayıcısı (OIDC/SSO), birden fazla onaylayıcı, rol bazlı onay yetkisi ve dört göz (iki kişilik) onayı yoktur. Canlı demoda onaylayıcı jetonu tanımlı değildir; onay akışı senaryo laboratuvarında simüle onaylayıcıyla gösterilir.
 - Denetim kaydı yerel SQLite'tır; değiştirilemez/kurcalamaya dayanıklı veya merkezi değildir.
 - Sandbox bir işletim sistemi veya konteyner güvenlik sınırı değildir.
 
@@ -325,7 +359,7 @@ Bu nedenle proje mevcut haliyle üretim ortamındaki gerçek hesapları, sırlar
 2. **Gerçek model adaptörleri:** Birden fazla LLM sağlayıcısı ve yerel modelle aynı test paketini çalıştırma.
 3. **MCP gateway:** Gerçek MCP istemci/sunucu trafiğini yakalama ve araç şemalarını doğrulama.
 4. **Politika derinliği:** Kaynak ve parametre kapsamı, veri sınıflandırma, kota/rate limit ve Open Policy Agent adaptörü.
-5. **Güvenli onay:** Kimliği doğrulanmış, süreli, tek kullanımlı ve eylem parametrelerine bağlı insan onayı.
+5. **Güvenli onay:** Kimliği doğrulanmış, süreli, tek kullanımlı ve eylem parametrelerine bağlı insan onayı tamamlandı; sonraki adım OIDC tabanlı onaylayıcı kimliği ve dört göz onayı.
 6. **Gözlemlenebilirlik:** OpenTelemetry trace'leri, merkezi denetim deposu ve redaksiyon testleri.
 7. **Ajan Kalkanı CI:** Görev başarısı, saldırı başarısı ve yanlış engelleme eşikleriyle ilk güvenlik regresyon kapısı tamamlandı; sonraki adım model gecikmesi ve maliyet eşiklerini eklemek.
 

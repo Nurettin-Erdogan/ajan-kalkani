@@ -38,7 +38,7 @@ class PolicyDecision(BaseModel):
 
 class TraceEvent(BaseModel):
     step: int
-    actor: Literal["agent", "gateway", "tool", "system"]
+    actor: Literal["agent", "gateway", "approver", "tool", "system"]
     action: str
     decision: Literal["observed", "allowed", "blocked", "executed", "error"]
     risk: Literal["low", "medium", "high", "critical"]
@@ -57,6 +57,7 @@ class RunMetrics(BaseModel):
     sensitive_reads: int = 0
     external_writes: int = 0
     approval_requests: int = 0
+    approvals_granted: int = 0
 
 
 class RunRequest(BaseModel):
@@ -169,6 +170,46 @@ class GatewaySessionDetail(GatewaySessionSummary):
 
 class GatewayAuthorizationRequest(BaseModel):
     call: ToolCall
+    approval_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=64,
+        description="Daha önce verilmiş onayın kimliği; yalnızca aynı oturumda ve birebir aynı çağrı için bir kez geçerlidir.",
+    )
+
+
+ApprovalDisplayStatus = Literal["pending", "approved", "rejected", "expired", "consumed"]
+ApprovalStatusFilter = Literal["pending", "approved", "rejected", "expired", "consumed", "all"]
+
+
+class GatewayApprovalSummary(BaseModel):
+    id: str
+    status: ApprovalDisplayStatus
+    expires_at: datetime
+
+
+class GatewayApprovalRecord(BaseModel):
+    id: str
+    session_id: str
+    tool: str
+    origin: str
+    data_labels: list[str]
+    arguments_preview: dict[str, Any] = Field(
+        description="Onaylayıcının gördüğü redakte argüman önizlemesi; onay ise ham argümanların özetine bağlıdır.",
+    )
+    request_hash: str
+    status: ApprovalDisplayStatus
+    created_at: datetime
+    expires_at: datetime
+    decided_at: datetime | None = None
+    decided_by: str | None = None
+    note: str | None = None
+    consumed_at: datetime | None = None
+
+
+class GatewayApprovalDecisionRequest(BaseModel):
+    approved: bool
+    note: str | None = Field(default=None, max_length=500)
 
 
 class GatewayDecisionRecord(BaseModel):
@@ -180,3 +221,4 @@ class GatewayDecisionRecord(BaseModel):
     data_labels: list[str]
     request_hash: str
     decision: PolicyDecision
+    approval: GatewayApprovalSummary | None = None

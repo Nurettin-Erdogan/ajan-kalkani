@@ -940,6 +940,14 @@ a {
   color: var(--danger);
 }
 
+.gateway-decision.is-pending {
+  border-left: 3px solid var(--warning);
+}
+
+.gateway-decision.is-pending > span {
+  color: var(--warning);
+}
+
 .policy-result-heading {
   display: flex;
   align-items: center;

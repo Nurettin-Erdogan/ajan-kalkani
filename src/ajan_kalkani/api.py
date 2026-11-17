@@ -1,21 +1,48 @@
 from __future__ import annotations
 
+import hmac
 import os
 import time
 from collections import defaultdict
+from hashlib import sha256
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 
 from ajan_kalkani import __version__
 from ajan_kalkani.evaluation import EvaluationReport, evaluate_all
-from ajan_kalkani.gateway import GatewaySessionExpiredError, GatewaySessionNotFoundError, GatewayStore
+from ajan_kalkani.gateway import (
+    GatewayApprovalConflictError,
+    GatewayApprovalExpiredError,
+    GatewayApprovalNotFoundError,
+    GatewaySessionExpiredError,
+    GatewaySessionNotFoundError,
+    GatewayStore,
+)
 from ajan_kalkani.audit import AuditStore
 from ajan_kalkani.laboratory import evaluate_policy
-from ajan_kalkani.models import AuditEvaluationSummary, AuditIntegrityReport, AuditRunSummary, GatewayAuthorizationRequest, GatewayDecisionRecord, GatewaySessionCreate, GatewaySessionDetail, GatewaySessionSummary, PolicyEvaluationRequest, PolicyEvaluationResponse, RunRequest, RunResult, ScenarioSummary
+from ajan_kalkani.models import (
+    ApprovalStatusFilter,
+    AuditEvaluationSummary,
+    AuditIntegrityReport,
+    AuditRunSummary,
+    GatewayApprovalDecisionRequest,
+    GatewayApprovalRecord,
+    GatewayAuthorizationRequest,
+    GatewayDecisionRecord,
+    GatewaySessionCreate,
+    GatewaySessionDetail,
+    GatewaySessionSummary,
+    PolicyEvaluationRequest,
+    PolicyEvaluationResponse,
+    RunRequest,
+    RunResult,
+    ScenarioSummary,
+)
 from ajan_kalkani.scenarios import get_scenario_summaries
 from ajan_kalkani.service import ScenarioNotFoundError, run_scenario
 
@@ -47,6 +74,47 @@ async def hide_api_explorers_on_public_demo(request: Request, call_next) -> Resp
     if _is_public_demo() and request.url.path in _PUBLIC_EXPLORER_PATHS:
         return JSONResponse(status_code=404, content={"detail": "Not Found"})
     return await call_next(request)
+
+
+MIN_APPROVER_TOKEN_LENGTH = 32
+_approver_bearer = HTTPBearer(
+    auto_error=False,
+    scheme_name="OnaylayiciJetonu",
+    description="AJAN_KALKANI_APPROVER_TOKEN ile yapılandırılan onaylayıcı jetonu.",
+)
+
+
+def require_approver(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_approver_bearer),
+) -> str:
+    """Onay uçlarını ajandan ayrı bir onaylayıcı kimliğiyle korur.
+
+    Jeton yapılandırılmamışsa veya zayıfsa uç kapalı başarısız olur (503):
+    onay vermenin varsayılan hâli "kimse onaylayamaz"dır. Karşılaştırma iki
+    değerin SHA-256 özetleri üzerinde sabit zamanlı yapılır; yanıt süresi
+    jetonun ne kadarının doğru tahmin edildiğini ele vermez.
+    """
+
+    expected = os.getenv("AJAN_KALKANI_APPROVER_TOKEN", "")
+    if len(expected) < MIN_APPROVER_TOKEN_LENGTH:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Onaylayıcı yapılandırılmamış: AJAN_KALKANI_APPROVER_TOKEN en az "
+                f"{MIN_APPROVER_TOKEN_LENGTH} karakterlik rastgele bir değer olmalı."
+            ),
+        )
+    presented = credentials.credentials if credentials else ""
+    if not hmac.compare_digest(
+        sha256(presented.encode("utf-8")).digest(),
+        sha256(expected.encode("utf-8")).digest(),
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Geçerli bir onaylayıcı jetonu gerekli.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return os.getenv("AJAN_KALKANI_APPROVER_NAME", "").strip()[:80] or "onaylayıcı"
 
 
 def _client_ip(request: Request) -> str:
@@ -183,6 +251,49 @@ def gateway_decisions(
         return GatewayStore().list_decisions(session_id, limit)
     except GatewaySessionNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/gateway/approvals", response_model=list[GatewayApprovalRecord])
+def gateway_approvals(
+    status: ApprovalStatusFilter = Query(default="pending"),
+    limit: int = Query(default=20, ge=1, le=100),
+    _approver: str = Depends(require_approver),
+) -> list[GatewayApprovalRecord]:
+    """Onaylayıcının kuyruğu: redakte argüman önizlemeleriyle onay istekleri."""
+    return GatewayStore().list_approvals(status, limit)
+
+
+@app.get("/api/gateway/approvals/{approval_id}", response_model=GatewayApprovalRecord)
+def gateway_approval(approval_id: str) -> GatewayApprovalRecord:
+    """Ajanın kendi onay isteğinin durumunu sorgulaması için."""
+    approval = GatewayStore().get_approval(approval_id)
+    if approval is None:
+        raise HTTPException(status_code=404, detail=f"Onay kaydı bulunamadı: {approval_id}")
+    return approval
+
+
+@app.post(
+    "/api/gateway/approvals/{approval_id}/decision",
+    response_model=GatewayApprovalRecord,
+)
+def decide_gateway_approval(
+    approval_id: str,
+    request: GatewayApprovalDecisionRequest,
+    approver: str = Depends(require_approver),
+) -> GatewayApprovalRecord:
+    try:
+        return GatewayStore().decide_approval(
+            approval_id,
+            approved=request.approved,
+            approver=approver,
+            note=request.note,
+        )
+    except GatewayApprovalNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except GatewayApprovalConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except GatewayApprovalExpiredError as exc:
+        raise HTTPException(status_code=410, detail=str(exc)) from exc
 
 
 @app.post("/api/runs", response_model=RunResult)

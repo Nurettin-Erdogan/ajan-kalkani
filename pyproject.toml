@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ajan-kalkani"
-version = "1.0.0"
+version = "1.1.0"
 description = "AI ajanları için niyet odaklı çalışma zamanı politika geçidi ve güvenlik değerlendirme ortamı"
 readme = "README.md"
 requires-python = ">=3.11"

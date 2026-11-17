@@ -53,13 +53,15 @@ Erişilebilirlik, çok kiracılı izolasyon, mevzuat uyumluluğu ve üretim sevi
 | Trace ve metrikler | Olay incelemesi ve regresyon kararı için kanıttır | Karar, risk, `task_success`, `attack_success` |
 | Politika motoru ve araç kaydı | Güvenilir hesaplama tabanının parçasıdır | Kural önceliği ve capability eşlemesi |
 | Gelecekteki kimlik bilgileri | Gerçek araçlara erişim verir | MCP token'ı, OAuth credential, API anahtarı |
-| Gelecekteki onay jetonları | Hassas eyleme geçici yetki verir | Eylem ve parametreye bağlı tek kullanımlı onay |
+| İnsan onayları | Hassas eyleme geçici yetki verir | Oturuma, çağrı özetine ve süreye bağlı tek kullanımlık `gateway_approvals` kaydı |
+| Onaylayıcı jetonu | Onay verme yetkisinin kendisidir; ajanın eline geçerse ajan kendini onaylar | `AJAN_KALKANI_APPROVER_TOKEN` |
 
 ## 5. Aktörler
 
 | Aktör | Güven düzeyi | Rol |
 |---|---|---|
-| Son kullanıcı | Kısmen güvenilir | Görevi başlatır ve gelecekte hassas eylemleri onaylar |
+| Son kullanıcı | Kısmen güvenilir | Görevi başlatır |
+| Onaylayıcı | Güvenilir; ajandan ayrı kimlik | Onay jetonuyla hassas eylemi, redakte önizlemesini görerek onaylar veya reddeder |
 | Contract sahibi/operatör | MVP'de güvenilir | Capability yetkilerini elle tanımlar ve sistemle birlikte dağıtır |
 | Ajan/model | Güvenilmez karar üreticisi | Araç çağrıları planlar; manipüle edilmiş olabilir |
 | Harici içerik sağlayıcı | Güvenilmez | E-posta, doküman veya araç sonucuna saldırı talimatı koyabilir |
@@ -140,13 +142,13 @@ Bu varsayımlar gerçek dağıtımda kendiliğinden geçerli değildir; altyapı
 | T-02 | Doğrudan talimatla yetki yükseltme | Yasak araç veya işlem denenir | `deny` önceliği ve default-deny | Contract fazla genişse kontrol koruyamaz |
 | T-03 | Confused deputy: ajanın sahip olduğu yetkiyi saldırgan adına kullanması | Veri okuma, silme veya gönderme | Yetkiyi ajan kimliğine değil koşuya seçilen capability listesine bağlama | Liste görevle uyumsuz veya aşırı geniş olabilir; kullanıcı/kaynak kapsamı ve delegasyon zinciri gerekir |
 | T-04 | Hassas dosyayı okuyup webhook'a sızdırma | Gizlilik ihlali | `file.read` açık yasağı; adaptörden gelen hassas etiketin webhook'a taşınması; fake tools | Etiket eksikse sensitive-egress kuralı çalışmaz; izinli başka sink/parametrelerle sızdırma mümkün olabilir |
-| T-05 | Yıkıcı takvim/dosya işlemi | Bütünlük ve kullanılabilirlik kaybı | Yıkıcı capability'yi deny veya approval-required yapma | Gerçek onay akışı MVP'de yoktur |
+| T-05 | Yıkıcı takvim/dosya işlemi | Bütünlük ve kullanılabilirlik kaybı | Yıkıcı capability'yi deny veya approval-required yapma; onaylı yürütme parametreye bağlı ve tek kullanımlık | Onaylayıcı redakte önizlemeyi dikkatsizce onaylayabilir; dört göz onayı yoktur |
 | T-06 | Araç adı veya joker karakter çakışmasıyla politika atlama | Beklenmedik izin | Case-sensitive kalıp eşleme; deny önceliği; bilinmeyen yeteneğe default-deny | Unicode/case/alias kanonikleştirme testleri ve şema kaydı genişletilmeli |
 | T-07 | İzinli araçta zararlı parametre: path traversal, SSRF, farklı alıcı | Yetki kapsamı içinden saldırı | MVP araçları sentetik ve ağsız | Kaynak/parametre politikaları, URL allowlist, path sandbox, şema doğrulama gerekir |
 | T-08 | Araç sonucundan ikinci aşama injection | Ajan sonraki adımda manipüle edilir | Her araç çağrısını ayrı denetleme | İzinli araçlar arası veri akışı politikaları gerekir |
 | T-09 | Gateway'i atlayarak araca doğrudan erişim | Bütün politika kontrolleri etkisiz kalır | MVP'de guarded kod yolu tek yürütme yolu | Ağ segmentasyonu, egress policy, ayrı credential ve mTLS gerekir |
 | T-10 | Contract değiştirme veya TOCTOU | Koşu sırasında yetki genişler | Koşuya ait contract nesnesiyle deterministik çalışma | İmzalanmış/sürümlü policy snapshot ve hash'i trace'e eklenmeli |
-| T-11 | Sahte veya tekrar kullanılan insan onayı | Hassas eylem yetkisiz çalışır | MVP approval-required kararında eylemi çalıştırmaz | Kimlikli, süreli, tek kullanımlı ve parametreye bağlı onay jetonu gerekir |
+| T-11 | Sahte veya tekrar kullanılan insan onayı | Hassas eylem yetkisiz çalışır | Onay ajandan ayrı jetonla verilir (yoksa `503`); oturuma, kanonik çağrı özetine ve süreye bağlıdır; `BEGIN IMMEDIATE` altında bir kez tüketilir; parametre değişikliği, tekrar kullanım, süre aşımı ve oturumlar arası taşıma reddedilir | Tek statik jeton; OIDC kimliği, jeton rotasyonu, çoklu onaylayıcı ve dört göz kuralı yok. Jeton ajanın ortamına sızarsa ajan kendini onaylayabilir |
 | T-12 | Olay, log veya hata mesajında sır sızması | Gizlilik ihlali | Olay input/output alanlarında hassas anahtar adı ve demo secret deseni tabanlı recursive redaksiyon | Etiketler redactor tarafından kullanılmaz; farklı secret/PII biçimleri ve hata detail'i kaçabilir |
 | T-13 | Olayların değiştirilmesi veya atılması | Yanlış olay incelemesi ve CI sonucu | Redakte edilmiş yerel SQLite koşu kaydı, sıralı `step` ve `RunResult.id` | Yerel kayıt değiştirilebilir; eklemeli/kurcalamaya dayanıklı merkezi depo ve imzalı export gerekir |
 | T-14 | Çok büyük/tekrarlanan istek ve araç döngüsü | Kaynak tüketimi, hizmet kesintisi, maliyet | Deterministik ve sonlu MVP senaryoları | Body limiti, timeout, adım/token/maliyet bütçesi ve rate limit gerekir |
@@ -168,6 +170,14 @@ Gateway kararı araç yan etkisinden önce verir. Operatörün contract'ında bu
 ### Kural önceliği
 
 Değerlendirme sırası `explicit_deny`, `sensitive_egress`, `approval_required`, `allow`, `default_deny` şeklindedir. Açık ret, geniş bir iznin içinde bile kazanır. `sensitive_egress` yalnızca `ToolCall.data_labels` içinde desteklenen hassas etiket bulunduğunda ve capability `webhook.*`, `email.send`, `email.forward`, `payment.*`, `http.*` veya `network.*` harici-sink kalıplarından biriyle eşleştiğinde uygulanır; payload anahtarlarını kendisi taramaz.
+
+### Parametreye bağlı insan onayı
+
+Onay bir yetenek değil, tek bir eylem için verilir. Gateway onay isteğini çağrının kanonik SHA-256 özetine bağlar; özet araç adını, bütün argümanları, kaynağı ve sıralı veri etiketlerini kapsar. Etiketlerin sıralanması güvenlik açısından gereklidir: Python'da string kümelerinin dolaşım sırası süreçten sürece değişir ve sıralanmamış özet, meşru onayları farklı süreçlerde rastgele reddederdi. Bu nedenle sırasız alan içeren her şey özetlenmeden önce kanonikleştirilir.
+
+Onay kontrolü şu saldırıları ayrı kural kimlikleriyle durdurur: ajanın onaylanan e-postayı başka alıcıya yönlendirmesi (`approval.parameters-mismatch`), onaylanan ödemeyi tekrar oynatması (`approval.replayed`), başka oturumun onayını kullanması (`approval.session-mismatch`), süresi dolmuş veya reddedilmiş onayı sunması. Aynı onayı paralel isteklerle iki kez harcama denemesi tek yazıcı kilidi ve koşullu güncelleme ile engellenir. Onaylayıcı jetonu `hmac.compare_digest` ile SHA-256 özetleri üzerinden karşılaştırılır; jeton tanımlı değilse onay verilemez.
+
+Onaylayıcı, sırların maskelendiği bir önizleme görür; onay ise ham argümanların özetine bağlıdır. Hassas etiketli çağrılarda önizleme tamamen maskelenir; böyle bir çağrının onaylanması onaylayıcının bağlamı başka kanaldan doğrulamasını gerektirir.
 
 ### Sentetik yan etkiler
 
@@ -196,6 +206,10 @@ MVP için asgari otomatik doğrulamalar:
 7. Reddedilen araç sandbox durumunda yan etki oluşturmaz.
 8. `RunResult.events` ve toplu değerlendirme raporu sentetik `PROD_CREDENTIAL_7F3C1` değerini ham olarak içermez.
 9. Bilinmeyen senaryo `404`, geçersiz API gövdesi `422` döndürür.
+10. Onaylanan çağrının parametreleri değiştirildiğinde veya onay ikinci kez sunulduğunda araç çalışmaz (`approved_email_recipient_swap`, `approved_payment_replay`).
+11. Aynı çağrı farklı `PYTHONHASHSEED` değerli süreçlerde aynı onay özetini üretir.
+12. Paralel istekler tek bir onayı yalnızca bir kez harcayabilir.
+13. Onaylayıcı jetonu tanımlı değilken onay uçları `503`, geçersiz jetonla `401` döndürür.
 
 Bu kriterler güvenlik kanıtının tamamı değil, regresyonları yakalayan başlangıç invariant'larıdır.
 
@@ -235,7 +249,7 @@ Gerçek model veya MCP aracı bağlanmadan önce en az şunlar eklenmelidir:
 - kimlik doğrulama, RBAC ve kullanıcı/tenant bağlamı;
 - sürümlü, sahipli, incelenmiş ve hash'lenmiş contract snapshot'ı;
 - araç şeması, parametre, kaynak ve veri akışı politikaları;
-- kimlikli, süreli ve eyleme bağlı onay mekanizması;
+- mevcut eyleme bağlı onay mekanizması için kurumsal kimlik sağlayıcısı (OIDC), jeton rotasyonu ve dört göz kuralı;
 - adım, zaman, token, araç ve para bütçeleri;
 - şema tabanlı redaksiyon ile redaksiyon regresyon testleri;
 - TLS, araç kimliği doğrulama ve sır yönetimi;
