@@ -1,0 +1,28 @@
+name: Canlı demo kontrolü
+
+# Vercel'deki canlı demoyu her sabah 06:20'de (TSİ, UTC+3) doğrular: servis
+# ayakta mı, depodaki sürümü mü çalıştırıyor ve gizli verinin dışarı
+# sızdırılmasını gerçekten engelliyor mu? Başarısız olursa GitHub e-posta gönderir.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 3 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v7
+
+      - name: Python kur
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Canlı demoyu doğrula
+        run: python scripts/live_smoke.py
