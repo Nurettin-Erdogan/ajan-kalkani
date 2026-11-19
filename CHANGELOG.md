@@ -4,6 +4,11 @@
 
 ## [Yayınlanmamış]
 
+### Eklendi
+
+- Canlı demo kontrolü (`scripts/live_smoke.py`, `live-check.yml`): Vercel'deki demo her sabah otomatik doğrulanır. Servisin ayakta olduğu, depodaki sürümü çalıştırdığı (takılı kalmış dağıtım tespiti), dashboard CSP başlığı ve gizli etiketli verinin webhook'a gönderiminin `dataflow.sensitive-to-external` kuralıyla engellendiği kontrol edilir. Yalnızca standart kütüphane kullanır.
+- Canlı kontrolün varsayımlarını uygulamanın kendisine karşı doğrulayan 5 test; uygulama değiştiğinde canlı kontrolün sessizce yanlış şeyi doğrulamaya başlaması önlenir.
+
 ## [1.1.0] - 2026-11-17
 
 ### Eklendi

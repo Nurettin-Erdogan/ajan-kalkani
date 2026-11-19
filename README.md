@@ -7,6 +7,7 @@
 <p align="center">
   <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/ci.yml"><img src="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI durumu"></a>
   <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/codeql.yml"><img src="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL güvenlik analizi"></a>
+  <a href="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/live-check.yml"><img src="https://github.com/Nurettin-Erdogan/ajan-kalkani/actions/workflows/live-check.yml/badge.svg?branch=main" alt="Canlı demo kontrolü"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/lisans-MIT-0f766e.svg" alt="MIT Lisansı"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-0f766e.svg" alt="Python 3.11–3.13">
   <img src="https://img.shields.io/badge/sürüm-1.1.0-0f766e.svg" alt="Sürüm 1.1.0">
